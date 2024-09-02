@@ -3,7 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
 // Copyright 2024 by The Lindemans, LLC
-pub trait BluetoothManager {
+//
     fn connect(&self) -> Result<(), String>;
     fn read_data(&self) -> Result<Vec<u8>, String>;
 }
