@@ -21,39 +21,21 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.x
-
+        
     - name: Append License Header to Files
       run: |
-        #!/bin/bash
-
-        # Define the license header template
+        # Define the license header template and comment prefix
         LICENSE_HEADER=$(cat license-header.txt)
-
-        # Comment character (assuming Rust's comment style)
         COMMENT_PREFIX="// "
 
-        # Check and comment out the license header only if not already commented
-        LICENSE_HEADER_COMMENTED=$(echo "$LICENSE_HEADER" | sed -E "s|^([[:space:]]*)($COMMENT_PREFIX)?|\1$COMMENT_PREFIX|")
+        # Comment out the license header if not already commented
+        LICENSE_HEADER_COMMENTED=$(echo "$LICENSE_HEADER" | sed "s|^|$COMMENT_PREFIX|")
 
-        # Loop through all source files and update the license header
+        # Loop through all Rust source files
         for FILE in $(find . -name '*.rs'); do
-          # Determine the range of the existing commented block
-          START_LINE=0
-          END_LINE=0
-          while IFS= read -r LINE || [ -n "$LINE" ]; do
-            ((START_LINE++))
-            if [[ $LINE =~ ^[[:space:]]*// ]]; then
-              END_LINE=$START_LINE
-            else
-              break
-            fi
-          done < "$FILE"
-
-          # Remove the existing header
-          if [ $END_LINE -gt 0 ]; then
-            tail -n +$((END_LINE + 1)) "$FILE" > temp && mv temp "$FILE"
-          fi
-
+          # Remove existing header (assume it's the first commented block)
+          sed -i '/^\/\/ /d' "$FILE"
+          
           # Prepend the new license header
           echo "$LICENSE_HEADER_COMMENTED" | cat - "$FILE" > temp && mv temp "$FILE"
         done
