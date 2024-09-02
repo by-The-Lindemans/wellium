@@ -4,13 +4,6 @@
 // 
 //  Copyright 2024 by The Lindemans, LLC
 //   
-<<<<<<< HEAD
-//
-<<<<<<< HEAD
-//
-=======
-=======
->>>>>>> e2c5bf5 (YA header test)
 use core::BluetoothManager;
 pub struct IosBluetoothManager;
 

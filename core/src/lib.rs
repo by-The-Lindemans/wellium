@@ -4,13 +4,6 @@
 // 
 //  Copyright 2024 by The Lindemans, LLC
 //   
-<<<<<<< HEAD
-//
-<<<<<<< HEAD
-//
-=======
-=======
->>>>>>> e2c5bf5 (YA header test)
 pub trait BluetoothManager {
     fn connect(&self) -> Result<(), String>;
     fn read_data(&self) -> Result<Vec<u8>, String>;
