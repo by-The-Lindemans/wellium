@@ -31,7 +31,7 @@ jobs:
 
         # Loop through all source files and append the license header if it's not already present
         for FILE in $(find . -name '*.rs'); do
-          if ! head -n 5 "$FILE" | grep -qF "$LICENSE_HEADER"; then
+          if ! head -n 10 "$FILE" | grep -qF "$LICENSE_HEADER"; then
             echo "Adding license header to $FILE"
             echo "$LICENSE_HEADER" | cat - "$FILE" > temp && mv temp "$FILE"
           else
