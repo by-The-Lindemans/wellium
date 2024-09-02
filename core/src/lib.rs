@@ -8,7 +8,6 @@
 <<<<<<< HEAD
 //
 =======
-// Copyright 2024 by The Lindemans, LLC
 pub trait BluetoothManager {
 >>>>>>> parent of 2eca520 (Update license header in source files)
     fn connect(&self) -> Result<(), String>;
