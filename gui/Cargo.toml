@@ -1,0 +1,16 @@
+[package]
+name = "gui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+leptos = { version = "0.6", features = ["csr"] }
+leptos_router = "0.6"
+leptos_macro = "0.6"
+wasm-bindgen = "0.2"
+console_error_panic_hook = "0.1"
+
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]

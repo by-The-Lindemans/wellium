@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "core",
+    "android",
+    "ios",
+    "main",
+    "gui"
+]
+
+resolver = "2"
