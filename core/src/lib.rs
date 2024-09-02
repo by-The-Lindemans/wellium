@@ -3,13 +3,15 @@
 // // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // //
 // // Copyright 2024 by The Lindemans, LLC
+<<<<<<< HEAD
 // //
 //
 <<<<<<< HEAD
 //
 =======
+=======
+>>>>>>> e2c5bf5 (YA header test)
 pub trait BluetoothManager {
->>>>>>> parent of 2eca520 (Update license header in source files)
     fn connect(&self) -> Result<(), String>;
     fn read_data(&self) -> Result<Vec<u8>, String>;
 }

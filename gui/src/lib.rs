@@ -4,12 +4,14 @@
 // //
 // // Copyright 2024 by The Lindemans, LLC
 // //
+<<<<<<< HEAD
 //
 <<<<<<< HEAD
 //
 =======
+=======
+>>>>>>> e2c5bf5 (YA header test)
 use leptos::*;
->>>>>>> parent of 2eca520 (Update license header in source files)
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlLinkElement, HtmlMetaElement};
 
