@@ -29,18 +29,25 @@ jobs:
         # Define the license header template
         LICENSE_HEADER=$(cat license-header.txt)
 
-        # Loop through all source files and replace or append the license header
-        for FILE in $(find . -name '*.rs'); do
-          # Extract the same number of lines as the license header has
-          HEADER_LINES=$(echo "$LICENSE_HEADER" | wc -l)
-          EXISTING_HEADER=$(head -n "$HEADER_LINES" "$FILE")
+        # Hash the license header
+        LICENSE_HASH=$(echo "$LICENSE_HEADER" | md5sum | awk '{ print $1 }')
 
-          if [ "$EXISTING_HEADER" != "$LICENSE_HEADER" ]; then
+        # Loop through all source files and check if the license header needs to be updated
+        for FILE in $(find . -name '*.rs'); do
+          # Extract the existing header from the file
+          EXISTING_HEADER=$(head -n $(echo "$LICENSE_HEADER" | wc -l) "$FILE")
+
+          # Hash the existing header
+          EXISTING_HASH=$(echo "$EXISTING_HEADER" | md5sum | awk '{ print $1 }')
+
+          # Compare hashes
+          if [ "$LICENSE_HASH" != "$EXISTING_HASH" ]; then
             echo "Updating license header in $FILE"
-            # Replace the existing header with the new one
+            # Replace the old header with the new one
+            sed -i "1,${LICENSE_HEADER_LINES}d" "$FILE"
             echo "$LICENSE_HEADER" | cat - "$FILE" > temp && mv temp "$FILE"
           else
-            echo "License header already up to date in $FILE"
+            echo "License header already present and up-to-date in $FILE"
           fi
         done
 
