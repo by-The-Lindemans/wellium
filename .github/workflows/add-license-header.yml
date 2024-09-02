@@ -22,7 +22,7 @@ jobs:
       with:
         python-version: 3.x
 
-    - name: Debug: List all `.rs` files
+    - name: Debug: List all .rs files
       run: |
         find . -name '*.rs'
 
