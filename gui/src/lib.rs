@@ -5,7 +5,12 @@
 // // Copyright 2024 by The Lindemans, LLC
 // //
 //
+<<<<<<< HEAD
 //
+=======
+// Copyright 2024 by The Lindemans, LLC
+use leptos::*;
+>>>>>>> parent of 2eca520 (Update license header in source files)
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlLinkElement, HtmlMetaElement};
 

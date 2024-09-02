@@ -5,7 +5,12 @@
 // // Copyright 2024 by The Lindemans, LLC
 // //
 //
+<<<<<<< HEAD
 //
+=======
+// Copyright 2024 by The Lindemans, LLC
+#[cfg(target_os = "android")]
+>>>>>>> parent of 2eca520 (Update license header in source files)
 use android_io::connect_bluetooth;
 
 #[cfg(target_os = "ios")]
