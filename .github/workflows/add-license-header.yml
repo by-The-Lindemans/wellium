@@ -29,13 +29,18 @@ jobs:
         # Define the license header template
         LICENSE_HEADER=$(cat license-header.txt)
 
-        # Loop through all source files and append the license header if it's not already present
+        # Loop through all source files and replace or append the license header
         for FILE in $(find . -name '*.rs'); do
-          if ! head -n 10 "$FILE" | grep -qF "$LICENSE_HEADER"; then
-            echo "Adding license header to $FILE"
+          # Extract the same number of lines as the license header has
+          HEADER_LINES=$(echo "$LICENSE_HEADER" | wc -l)
+          EXISTING_HEADER=$(head -n "$HEADER_LINES" "$FILE")
+
+          if [ "$EXISTING_HEADER" != "$LICENSE_HEADER" ]; then
+            echo "Updating license header in $FILE"
+            # Replace the existing header with the new one
             echo "$LICENSE_HEADER" | cat - "$FILE" > temp && mv temp "$FILE"
           else
-            echo "License header already present in $FILE"
+            echo "License header already up to date in $FILE"
           fi
         done
 
@@ -44,5 +49,5 @@ jobs:
         git config --local user.name "GitHub Actions"
         git config --local user.email "actions@github.com"
         git add .
-        git commit -m "Add license header to source files" || echo "No changes to commit"
+        git commit -m "Update license header in source files" || echo "No changes to commit"
         git push origin HEAD:${{ github.ref }}
