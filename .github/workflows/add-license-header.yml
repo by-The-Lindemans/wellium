@@ -1,0 +1,46 @@
+name: Add License Header
+
+on:
+  push:
+    paths:
+      - '**/*.rs'  # Add paths or file types you want to include
+  pull_request:
+    paths:
+      - '**/*.rs'  # Add paths or file types you want to include
+  workflow_dispatch:  # Allows manual triggering of the workflow
+
+jobs:
+  add-license-header:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install Python (for running script)
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.x
+
+    - name: Append License Header to Files
+      run: |
+        #!/bin/bash
+
+        # Define the license header template
+        LICENSE_HEADER=$(cat license-header.txt)
+
+        # Loop through all source files and append the license header if it's not already present
+        for FILE in $(find . -name '*.rs'); do
+          if ! grep -q "$LICENSE_HEADER" "$FILE"; then
+            echo "Adding license header to $FILE"
+            echo "$LICENSE_HEADER" | cat - "$FILE" > temp && mv temp "$FILE"
+          fi
+        done
+
+    - name: Commit changes
+      run: |
+        git config --local user.name "GitHub Actions"
+        git config --local user.email "actions@github.com"
+        git add .
+        git commit -m "Add license header to source files" || echo "No changes to commit"
+        git push origin HEAD:${{ github.ref }}
