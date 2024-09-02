@@ -22,6 +22,10 @@ jobs:
       with:
         python-version: 3.x
 
+    - name: Debug: List all `.rs` files
+      run: |
+        find . -name '*.rs'
+
     - name: Append License Header to Files
       run: |
         #!/bin/bash
@@ -31,9 +35,11 @@ jobs:
 
         # Loop through all source files and append the license header if it's not already present
         for FILE in $(find . -name '*.rs'); do
-          if ! grep -q "$LICENSE_HEADER" "$FILE"; then
+          if ! grep -qF "$LICENSE_HEADER" "$FILE"; then
             echo "Adding license header to $FILE"
             echo "$LICENSE_HEADER" | cat - "$FILE" > temp && mv temp "$FILE"
+          else
+            echo "License header already present in $FILE"
           fi
         done
 
