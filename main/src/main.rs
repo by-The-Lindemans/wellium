@@ -3,7 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
 // Copyright 2024 by The Lindemans, LLC
-#[cfg(target_os = "android")]
+//
 use android_io::connect_bluetooth;
 
 #[cfg(target_os = "ios")]
