@@ -3,7 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
 // Copyright 2024 by The Lindemans, LLC
-//
+use leptos::*;
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlLinkElement, HtmlMetaElement};
 
