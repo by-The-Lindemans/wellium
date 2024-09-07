@@ -35,6 +35,19 @@ fn setup_document() {
     document.head().unwrap().append_child(&meta).unwrap();
 }
 
+// Widget struct to encapsulate widget properties
+#[derive(Clone)]
+struct Widget {
+    name: &'static str,
+    widget_aspect_ratio: f64, // Static aspect ratio for each widget
+}
+
+impl Widget {
+    fn new(name: &'static str, widget_aspect_ratio: f64) -> Self {
+        Widget { name, widget_aspect_ratio }
+    }
+}
+
 #[component]
 fn App() -> impl IntoView {
     // Track window size to determine orientation and manage layout
@@ -58,10 +71,32 @@ fn App() -> impl IntoView {
 
     update_window_size();
 
+    // Initialize widgets with static aspect ratios
     let widgets = vec![
-        "welliuᴍ", "Widget 2", "Widget 3", "Widget 4", "Widget 5", "Widget 6", "Widget 7", "Widget 8", "Widget 9", "Widget 10", 
-        "Widget 11", "Widget 12", "Widget 13", "Widget 14", "Widget 15", "Widget 16", "Widget 17", "Widget 18", "Widget 19", "Widget 20", 
-        "Widget 21", "Widget 22", "Widget 23", "Widget 24", // Ensure we have 24 widgets
+        Widget::new("welliuᴍ", 1.0 / 3.0),  // Widget 1 with aspect ratio 1/3
+        Widget::new("Widget 2", 2.0 / 3.0), // Widget 2 with aspect ratio 2/3
+        Widget::new("Widget 3", 1.0),       // Widget 3 with aspect ratio 1
+        Widget::new("Widget 4", 1.0 / 2.0), // All other widgets with aspect ratio 1/2
+        Widget::new("Widget 5", 1.0 / 2.0),
+        Widget::new("Widget 6", 1.0 / 2.0),
+        Widget::new("Widget 7", 1.0 / 2.0),
+        Widget::new("Widget 8", 1.0 / 2.0),
+        Widget::new("Widget 9", 1.0 / 2.0),
+        Widget::new("Widget 10", 1.0 / 2.0),
+        Widget::new("Widget 11", 1.0 / 2.0),
+        Widget::new("Widget 12", 1.0 / 2.0),
+        Widget::new("Widget 13", 1.0 / 2.0),
+        Widget::new("Widget 14", 1.0 / 2.0),
+        Widget::new("Widget 15", 1.0 / 2.0),
+        Widget::new("Widget 16", 1.0 / 2.0),
+        Widget::new("Widget 17", 1.0 / 2.0),
+        Widget::new("Widget 18", 1.0 / 2.0),
+        Widget::new("Widget 19", 1.0 / 2.0),
+        Widget::new("Widget 20", 1.0 / 2.0),
+        Widget::new("Widget 21", 1.0 / 2.0),
+        Widget::new("Widget 22", 1.0 / 2.0),
+        Widget::new("Widget 23", 1.0 / 2.0),
+        Widget::new("Widget 24", 1.0 / 2.0),
     ];
 
     let total_widgets = widgets.len(); // Total number of widgets
@@ -83,63 +118,85 @@ fn App() -> impl IntoView {
                     background-color: #7f7f7f;
                     color: white;
                 }
-
+    
                 /* Hide scrollbars for any scrollable container */
                 #app {
                     -ms-overflow-style: none;  /* IE and Edge */
                     scrollbar-width: none;  /* Firefox */
                 }
-
+    
                 #app::-webkit-scrollbar {
                     display: none;  /* Chrome, Safari, Opera */
                 }
                 "#}
             </style>
-
+    
             <div
                 id="app"
                 style=move || {
                     let (width, height) = window_size.get();
-                    let aspect_ratio = width / height;
-                    if aspect_ratio > 0.66 {
-                        // Landscape: allow for horizontal scrolling, wrap widgets into columns
-                        "display: flex; flex-wrap: wrap; flex-direction: column; height: 100%; overflow-x: auto; overflow-y: hidden; margin: 0; padding: 0; gap: 0;"
+                    let window_aspect_ratio = width / height; // Calculate window aspect ratio here
+                    let mut columns = 4.0; // Default to 4 columns in landscape mode
+                    
+                    // Adjust column count based on the viewport size (increase if wider)
+                    if width > 1000.0 {
+                        columns = (width / 300.0).floor(); // Ensure each column has a reasonable width
+                    }
+    
+                    let column_width = width / columns;
+                    let total_columns = (total_widgets as f64 / 6.0).ceil();
+                    let full_width = total_columns.min(columns) * column_width;
+    
+                    if window_aspect_ratio > 0.66 {
+                        // Landscape: allow for horizontal scrolling, wrap widgets into columns based on their height and aspect ratio
+                        format!("display: flex; flex-wrap: wrap; flex-direction: column; height: 100%; width: {}px; overflow-x: auto; overflow-y: hidden; margin: 0; padding: 0; gap: 5px;", full_width)
                     } else {
                         // Portrait: stack widgets vertically, allow vertical scrolling if needed
-                        "display: flex; flex-direction: column; height: 100%; overflow-y: auto; overflow-x: hidden; margin: 0; padding: 0; gap: 0;"
+                        "display: flex; flex-direction: column; height: 100%; width: 100%; overflow-y: auto; overflow-x: hidden; margin: 0; padding: 0; gap: 5px;".to_string()
                     }
                 }
             >
                 {
                     widgets.iter().enumerate().map(|(index, widget)| {
+                        let Widget { name, widget_aspect_ratio } = widget.clone(); // Widget aspect ratio stays the same
                         view! {
                             <div
                                 key=index
                                 style=move || {
-                                    let base_style = "aspect-ratio: 2 / 1; background-color: black; display: flex; align-items: center; justify-content: center; box-sizing: border-box; padding: 0; gap: 0;";
                                     let (width, height) = window_size.get();
-                                    let aspect_ratio = width / height;
-
-                                    if aspect_ratio > 0.66 {
-                                        // Landscape: 4 widgets per column
-                                        let is_last_column = (index / 6 + 1) * 6 >= total_widgets;
-                                        let is_last_row = (index % 6 == 5) || (index == total_widgets - 1);
-                                        let margin_right = if is_last_column { "0" } else { "5px" };
-                                        let margin_bottom = if is_last_row { "0" } else { "5px" };
-                                        format!("{} flex: 0 0 calc(16.67% - 4.25px); margin: 0 {} {} 0;", base_style, margin_right, margin_bottom)
+                                    let window_aspect_ratio = width / height; // Define window_aspect_ratio here
+                                    let mut columns = 4.0;
+                                    if width > 1000.0 {
+                                        columns = (width / 300.0).floor(); // Dynamically calculate number of columns
+                                    }
+    
+                                    if window_aspect_ratio > 0.66 {
+                                        // Landscape mode: widget width based on column calculation
+                                        let column_width = width / columns;
+                                        let widget_height = column_width * widget_aspect_ratio; // Calculate height based on widget aspect ratio
+    
+                                        let base_style = format!("width: {}px; height: {}px; background-color: black; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", column_width, widget_height);
+                                        let sticky_style = if index == 0 { "position: sticky; top: 0; z-index: 1;" } else { "" }; // First widget frozen
+    
+                                        format!("{} {}", base_style, sticky_style)
                                     } else {
-                                        // Portrait: full width, no bottom margin for the last widget
-                                        let margin_bottom = if index == total_widgets - 1 { "0" } else { "5px" };
-                                        format!("{} flex: 0 0 auto; width: 100%; margin: 0 0 {} 0;", base_style, margin_bottom)
+                                        // Portrait mode: full width, height based on aspect ratio
+                                        let widget_height = width * widget_aspect_ratio; // Adjust height based on full width
+    
+                                        let base_style = format!("width: 100%; height: {}px; background-color: black; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", widget_height);
+                                        let sticky_style = if index == 0 { "position: sticky; top: 0; z-index: 1;" } else { "" }; // First widget frozen
+    
+                                        format!("{} {}", base_style, sticky_style)
                                     }
                                 }
                             >
-                                {*widget}
+                                {name}
                             </div>
                         }
                     }).collect::<Vec<_>>()
                 }
             </div>
         </>
-    }
+    }    
+      
 }
