@@ -35,7 +35,6 @@ fn setup_document() {
     document.head().unwrap().append_child(&meta).unwrap();
 }
 
-// Widget struct to encapsulate widget properties
 #[derive(Clone)]
 struct Widget {
     name: &'static str,
