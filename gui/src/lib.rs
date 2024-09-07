@@ -1,9 +1,3 @@
-//  This Source Code Form is subject to the terms of the Mozilla Public
-//  License, v. 2.0. If a copy of the MPL was not distributed with this
-//  file, You can obtain one at https://mozilla.org/MPL/2.0/.
-// 
-//  Copyright 2024 by The Lindemans, LLC
-//   
 use leptos::*;
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlLinkElement, HtmlMetaElement};
@@ -74,29 +68,10 @@ fn App() -> impl IntoView {
     // Initialize widgets with static aspect ratios
     let widgets = vec![
         Widget::new("welliuᴍ", 1.0 / 3.0),  // Widget 1 with aspect ratio 1/3
-        Widget::new("Widget 2", 2.0 / 3.0), // Widget 2 with aspect ratio 2/3
-        Widget::new("Widget 3", 1.0),       // Widget 3 with aspect ratio 1
+        Widget::new("Widget 2", 1.0 / 2.0), // Widget 2 with aspect ratio 2/3
+        Widget::new("Widget 3", 1.0 / 2.0),       // Widget 3 with aspect ratio 1
         Widget::new("Widget 4", 1.0 / 2.0), // All other widgets with aspect ratio 1/2
         Widget::new("Widget 5", 1.0 / 2.0),
-        Widget::new("Widget 6", 1.0 / 2.0),
-        Widget::new("Widget 7", 1.0 / 2.0),
-        Widget::new("Widget 8", 1.0 / 2.0),
-        Widget::new("Widget 9", 1.0 / 2.0),
-        Widget::new("Widget 10", 1.0 / 2.0),
-        Widget::new("Widget 11", 1.0 / 2.0),
-        Widget::new("Widget 12", 1.0 / 2.0),
-        Widget::new("Widget 13", 1.0 / 2.0),
-        Widget::new("Widget 14", 1.0 / 2.0),
-        Widget::new("Widget 15", 1.0 / 2.0),
-        Widget::new("Widget 16", 1.0 / 2.0),
-        Widget::new("Widget 17", 1.0 / 2.0),
-        Widget::new("Widget 18", 1.0 / 2.0),
-        Widget::new("Widget 19", 1.0 / 2.0),
-        Widget::new("Widget 20", 1.0 / 2.0),
-        Widget::new("Widget 21", 1.0 / 2.0),
-        Widget::new("Widget 22", 1.0 / 2.0),
-        Widget::new("Widget 23", 1.0 / 2.0),
-        Widget::new("Widget 24", 1.0 / 2.0),
     ];
 
     let total_widgets = widgets.len(); // Total number of widgets
@@ -121,6 +96,8 @@ fn App() -> impl IntoView {
     
                 /* Hide scrollbars for any scrollable container */
                 #app {
+                    display: flex;
+                    flex-grow: 1; /* Allow app to grow to full width */
                     -ms-overflow-style: none;  /* IE and Edge */
                     scrollbar-width: none;  /* Firefox */
                 }
@@ -136,23 +113,13 @@ fn App() -> impl IntoView {
                 style=move || {
                     let (width, height) = window_size.get();
                     let window_aspect_ratio = width / height; // Calculate window aspect ratio here
-                    let mut columns = 4.0; // Default to 4 columns in landscape mode
                     
-                    // Adjust column count based on the viewport size (increase if wider)
-                    if width > 1000.0 {
-                        columns = (width / 300.0).floor(); // Ensure each column has a reasonable width
-                    }
-    
-                    let column_width = width / columns;
-                    let total_columns = (total_widgets as f64 / 6.0).ceil();
-                    let full_width = total_columns.min(columns) * column_width;
-    
-                    if window_aspect_ratio > 0.66 {
+                    if window_aspect_ratio > 1.0 {
                         // Landscape: allow for horizontal scrolling, wrap widgets into columns based on their height and aspect ratio
-                        format!("display: flex; flex-wrap: wrap; flex-direction: column; height: 100%; width: {}px; overflow-x: auto; overflow-y: hidden; margin: 0; padding: 0; gap: 5px;", full_width)
+                        format!("display: flex; flex-wrap: wrap; flex-direction: column; height: 100%; width: {}px; overflow-x: auto; overflow-y: hidden; margin: 0; padding: 0; gap: 5px;", width)
                     } else {
                         // Portrait: stack widgets vertically, allow vertical scrolling if needed
-                        "display: flex; flex-direction: column; height: 100%; width: 100%; overflow-y: auto; overflow-x: hidden; margin: 0; padding: 0; gap: 5px;".to_string()
+                        format!("display: flex; flex-direction: column; height: 100%; width: 100%; overflow-y: auto; overflow-x: hidden; margin: 0; padding: 0; gap: 5px;")
                     }
                 }
             >
@@ -165,14 +132,10 @@ fn App() -> impl IntoView {
                                 style=move || {
                                     let (width, height) = window_size.get();
                                     let window_aspect_ratio = width / height; // Define window_aspect_ratio here
-                                    let mut columns = 4.0;
-                                    if width > 1000.0 {
-                                        columns = (width / 300.0).floor(); // Dynamically calculate number of columns
-                                    }
-    
-                                    if window_aspect_ratio > 0.66 {
+                                        
+                                    if window_aspect_ratio > 1.0 {
                                         // Landscape mode: widget width based on column calculation
-                                        let column_width = width / columns;
+                                        let column_width = height / ((total_widgets as f64).clamp(12.0, 24.0) / 12.0);
                                         let widget_height = column_width * widget_aspect_ratio; // Calculate height based on widget aspect ratio
     
                                         let base_style = format!("width: {}px; height: {}px; background-color: black; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", column_width, widget_height);
@@ -188,6 +151,7 @@ fn App() -> impl IntoView {
     
                                         format!("{} {}", base_style, sticky_style)
                                     }
+
                                 }
                             >
                                 {name}
@@ -198,5 +162,4 @@ fn App() -> impl IntoView {
             </div>
         </>
     }    
-      
 }
