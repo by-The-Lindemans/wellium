@@ -67,11 +67,30 @@ fn App() -> impl IntoView {
 
     // Initialize widgets with static aspect ratios
     let widgets = vec![
-        Widget::new("welliuᴍ", 1.0 / 3.0),  // Widget 1 with aspect ratio 1/3
-        Widget::new("Widget 2", 1.0 / 2.0), // Widget 2 with aspect ratio 2/3
-        Widget::new("Widget 3", 1.0 / 2.0),       // Widget 3 with aspect ratio 1
-        Widget::new("Widget 4", 1.0 / 2.0), // All other widgets with aspect ratio 1/2
-        Widget::new("Widget 5", 1.0 / 2.0),
+        Widget::new("welliuᴍ", 0.5 / 3.0), 
+        Widget::new("Widget 2", 1.5 / 3.0),  // Widget 1 with aspect ratio 1/4
+        Widget::new("Widget 3", 2.0 / 3.0),   
+        Widget::new("Widget 4", 1.0 / 3.0),
+        Widget::new("Widget 5", 1.0 / 3.0),
+        Widget::new("Widget 6", 1.0 / 3.0),
+        Widget::new("Widget 7", 1.0 / 3.0),
+        Widget::new("Widget 8", 1.0 / 3.0),
+        Widget::new("Widget 9", 1.0 / 3.0),
+        Widget::new("Widget 10", 1.0 / 3.0),
+        Widget::new("Widget 11", 1.0 / 3.0),
+        Widget::new("Widget 12", 1.0 / 3.0),
+        Widget::new("Widget 13", 1.0 / 3.0),
+        Widget::new("Widget 14", 1.0 / 3.0),
+        Widget::new("Widget 15", 1.0 / 3.0),
+        Widget::new("Widget 16", 1.0 / 3.0),
+        Widget::new("Widget 17", 1.0 / 3.0),
+        Widget::new("Widget 18", 1.0 / 3.0),
+        Widget::new("Widget 19", 1.0 / 3.0),
+        Widget::new("Widget 20", 1.0 / 3.0),
+        Widget::new("Widget 21", 1.0 / 3.0),
+        Widget::new("Widget 22", 1.0 / 3.0),
+        Widget::new("Widget 23", 1.0 / 3.0),
+        Widget::new("Widget 24", 1.0 / 3.0),
     ];
 
     let total_widgets = widgets.len(); // Total number of widgets
@@ -93,33 +112,35 @@ fn App() -> impl IntoView {
                     background-color: #7f7f7f;
                     color: white;
                 }
-    
+
                 /* Hide scrollbars for any scrollable container */
                 #app {
                     display: flex;
-                    flex-grow: 1; /* Allow app to grow to full width */
+                    flex-direction: column;
+                    height: 100%;
+                    overflow: hidden;
                     -ms-overflow-style: none;  /* IE and Edge */
                     scrollbar-width: none;  /* Firefox */
                 }
-    
+
                 #app::-webkit-scrollbar {
                     display: none;  /* Chrome, Safari, Opera */
                 }
                 "#}
             </style>
-    
+
             <div
                 id="app"
                 style=move || {
                     let (width, height) = window_size.get();
                     let window_aspect_ratio = width / height; // Calculate window aspect ratio here
-                    
+
                     if window_aspect_ratio > 1.0 {
                         // Landscape: allow for horizontal scrolling, wrap widgets into columns based on their height and aspect ratio
                         format!("display: flex; flex-wrap: wrap; flex-direction: column; height: 100%; width: {}px; overflow-x: auto; overflow-y: hidden; margin: 0; padding: 0; gap: 5px;", width)
                     } else {
                         // Portrait: stack widgets vertically, allow vertical scrolling if needed
-                        format!("display: flex; flex-direction: column; height: 100%; width: 100%; overflow-y: auto; overflow-x: hidden; margin: 0; padding: 0; gap: 5px;")
+                        format!("display: flex; flex-direction: column; width: 100%; height: 100%; overflow-y: scroll; overflow-x: hidden; margin: 0; padding: 0; gap: 5px;")
                     }
                 }
             >
@@ -132,26 +153,26 @@ fn App() -> impl IntoView {
                                 style=move || {
                                     let (width, height) = window_size.get();
                                     let window_aspect_ratio = width / height; // Define window_aspect_ratio here
-                                        
+
                                     if window_aspect_ratio > 1.0 {
                                         // Landscape mode: widget width based on column calculation
-                                        let column_width = height / ((total_widgets as f64).clamp(12.0, 24.0) / 12.0);
+                                        let column_width = height / ((total_widgets as f64).clamp(12.0, 24.0) / 16.0);
                                         let widget_height = column_width * widget_aspect_ratio; // Calculate height based on widget aspect ratio
-    
+
                                         let base_style = format!("width: {}px; height: {}px; background-color: black; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", column_width, widget_height);
                                         let sticky_style = if index == 0 { "position: sticky; top: 0; z-index: 1;" } else { "" }; // First widget frozen
-    
+
                                         format!("{} {}", base_style, sticky_style)
                                     } else {
-                                        // Portrait mode: full width, height based on aspect ratio
-                                        let widget_height = width * widget_aspect_ratio; // Adjust height based on full width
-    
+                                        // Portrait mode: maintain aspect ratio relative to widget width
+                                        let widget_width = width; // Use full width
+                                        let widget_height = widget_width * widget_aspect_ratio; // Maintain aspect ratio
+
                                         let base_style = format!("width: 100%; height: {}px; background-color: black; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", widget_height);
                                         let sticky_style = if index == 0 { "position: sticky; top: 0; z-index: 1;" } else { "" }; // First widget frozen
-    
+
                                         format!("{} {}", base_style, sticky_style)
                                     }
-
                                 }
                             >
                                 {name}
@@ -161,5 +182,6 @@ fn App() -> impl IntoView {
                 }
             </div>
         </>
-    }    
+    }
+     
 }
