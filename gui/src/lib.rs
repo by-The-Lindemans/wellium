@@ -35,6 +35,7 @@ fn setup_document() {
     document.head().unwrap().append_child(&meta).unwrap();
 }
 
+// Widget struct to encapsulate widget properties
 #[derive(Clone)]
 struct Widget {
     name: &'static str,
@@ -120,8 +121,6 @@ fn App() -> impl IntoView {
 
                 /* Hide scrollbars for any scrollable container */
                 #app {
-                    display: flex;
-                    flex-direction: column;
                     height: 100%;
                     overflow: hidden;
                     -ms-overflow-style: none;  /* IE and Edge */
@@ -138,26 +137,26 @@ fn App() -> impl IntoView {
                 id="app"
                 style=move || {
                     let (width, height) = window_size.get();
-                    let window_aspect_ratio = width / height; // Calculate window aspect ratio here
+                    let window_aspect_ratio = width / height;
 
                     if window_aspect_ratio > ((total_widgets as f64).clamp(12.0, 24.0) * -0.0558 + 2.0) { //computes to 1.33 - 0.66 to allow smooth transition between views
                         // Landscape: allow for horizontal scrolling, wrap widgets into columns based on their height and aspect ratio
                         format!("display: flex; flex-wrap: wrap; flex-direction: column; height: 100%; width: {}px; overflow-x: auto; overflow-y: hidden; margin: 0; padding: 0; gap: 5px;", width)
                     } else {
-                        // Portrait: stack widgets vertically, allow vertical scrolling if needed
-                        format!("display: flex; flex-direction: column; width: 100%; height: 100%; overflow-y: scroll; overflow-x: hidden; margin: 0; padding: 0; gap: 5px;")
+                        // Portrait mode: vertical scrolling with grid layout
+                        format!("display: grid; grid-template-columns: 1fr; grid-auto-rows: min-content; width: 100%; height: 100%; overflow-y: auto; gap: 5px;")
                     }
                 }
             >
                 {
                     widgets.iter().enumerate().map(|(index, widget)| {
-                        let Widget { name, widget_aspect_ratio } = widget.clone(); // Widget aspect ratio stays the same
+                        let Widget { name, widget_aspect_ratio } = widget.clone();
                         view! {
                             <div
                                 key=index
                                 style=move || {
                                     let (width, height) = window_size.get();
-                                    let window_aspect_ratio = width / height; // Define window_aspect_ratio here
+                                    let window_aspect_ratio = width / height;
 
                                     if window_aspect_ratio > ((total_widgets as f64).clamp(12.0, 24.0) * -0.0558 + 2.0) {
                                         // Landscape mode: widget width based on column calculation
@@ -188,5 +187,4 @@ fn App() -> impl IntoView {
             </div>
         </>
     }
-     
 }
