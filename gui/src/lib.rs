@@ -1,3 +1,9 @@
+//  This Source Code Form is subject to the terms of the Mozilla Public
+//  License, v. 2.0. If a copy of the MPL was not distributed with this
+//  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+// 
+//  Copyright 2024 — by The Lindemans, LLC
+//   
 use leptos::*;
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlLinkElement, HtmlMetaElement};
@@ -29,7 +35,6 @@ fn setup_document() {
     document.head().unwrap().append_child(&meta).unwrap();
 }
 
-// Widget struct to encapsulate widget properties
 #[derive(Clone)]
 struct Widget {
     name: &'static str,
