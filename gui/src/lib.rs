@@ -68,7 +68,7 @@ fn App() -> impl IntoView {
     // Initialize widgets with static aspect ratios
     let widgets = vec![
         Widget::new("welliuᴍ", 0.5 / 3.0), 
-        Widget::new("Widget 2", 1.5 / 3.0),  // Widget 1 with aspect ratio 1/4
+        Widget::new("Widget 2", 1.5 / 3.0),  
         Widget::new("Widget 3", 2.0 / 3.0),   
         Widget::new("Widget 4", 1.0 / 3.0),
         Widget::new("Widget 5", 1.0 / 3.0),
@@ -135,7 +135,7 @@ fn App() -> impl IntoView {
                     let (width, height) = window_size.get();
                     let window_aspect_ratio = width / height; // Calculate window aspect ratio here
 
-                    if window_aspect_ratio > 1.0 {
+                    if window_aspect_ratio > ((total_widgets as f64).clamp(12.0, 24.0) * -0.0558 + 2.0) { //computes to 1.33 - 0.66 to allow smooth transition between views
                         // Landscape: allow for horizontal scrolling, wrap widgets into columns based on their height and aspect ratio
                         format!("display: flex; flex-wrap: wrap; flex-direction: column; height: 100%; width: {}px; overflow-x: auto; overflow-y: hidden; margin: 0; padding: 0; gap: 5px;", width)
                     } else {
@@ -154,7 +154,7 @@ fn App() -> impl IntoView {
                                     let (width, height) = window_size.get();
                                     let window_aspect_ratio = width / height; // Define window_aspect_ratio here
 
-                                    if window_aspect_ratio > 1.0 {
+                                    if window_aspect_ratio > ((total_widgets as f64).clamp(12.0, 24.0) * -0.0558 + 2.0) {
                                         // Landscape mode: widget width based on column calculation
                                         let column_width = height / ((total_widgets as f64).clamp(12.0, 24.0) / 16.0);
                                         let widget_height = column_width * widget_aspect_ratio; // Calculate height based on widget aspect ratio
