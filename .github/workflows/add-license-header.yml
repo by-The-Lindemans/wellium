@@ -12,10 +12,15 @@ on:
 jobs:
   add-license-header:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Important for creating branches and PRs
 
     - name: Install Python (for running script)
       uses: actions/setup-python@v2
@@ -43,10 +48,23 @@ jobs:
           echo "$LICENSE_HEADER_COMMENTED" | cat - "$FILE" > temp && mv temp "$FILE"
         done
 
-    - name: Commit changes
+    - name: Check if any files were modified
+      id: changes
       run: |
-        git config --local user.name "GitHub Actions"
-        git config --local user.email "actions@github.com"
-        git add .
-        git commit -m "Update license header in source files" || echo "No changes to commit"
-        git push origin HEAD:${{ github.ref }}
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "changes=true" >> $GITHUB_OUTPUT
+        else
+          echo "changes=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create Pull Request with License Header Updates
+      if: steps.changes.outputs.changes == 'true'
+      uses: peter-evans/create-pull-request@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "Update license header in source files"
+        branch: license-header-updates
+        title: "Update License Headers"
+        body: |
+          This pull request updates the license headers in the source files.
+        labels: automated
