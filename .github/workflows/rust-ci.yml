@@ -12,8 +12,12 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
@@ -36,8 +40,28 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-build-
 
-      - name: Check code formatting
-        run: cargo fmt --all -- --check
+      - name: Run cargo fmt
+        run: cargo fmt --all
+
+      - name: Check if any files were formatted
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request with Formatting Fixes
+        if: steps.changes.outputs.changes == 'true'
+        uses: peter-evans/create-pull-request@v4
+        with:
+          commit-message: Apply rustfmt formatting
+          branch: formatting-fixes
+          title: Fix code formatting
+          body: |
+            This pull request applies rustfmt formatting to the codebase.
+          labels: automated fix
 
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
