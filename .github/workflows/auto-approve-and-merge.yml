@@ -1,0 +1,93 @@
+name: Auto Approve and Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      statuses: read
+      checks: read
+      contents: read
+
+    if: github.actor == 'github-actions[bot]' && github.event.pull_request.head.ref == 'formatting-fixes'
+
+    steps:
+      - name: Auto-approve pull request
+        uses: hmarr/auto-approve-action@v2
+        with:
+          github-token: ${{ secrets.ACTIONS_TOKEN }}
+
+  auto-merge:
+    needs: auto-approve
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      statuses: read
+      checks: read
+      contents: read
+
+    if: github.actor == 'github-actions[bot]' && github.event.pull_request.head.ref == 'formatting-fixes'
+
+    steps:
+      - name: Wait for status checks to pass
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.ACTIONS_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pull_number = context.payload.pull_request.number;
+            const requiredChecks = ['Rust CI']; // Replace with your actual status check names
+
+            async function waitForChecks() {
+              const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+              while (true) {
+                const { data: pr } = await github.pulls.get({
+                  owner,
+                  repo,
+                  pull_number,
+                });
+
+                const { data: combinedStatus } = await github.repos.getCombinedStatusForRef({
+                  owner,
+                  repo,
+                  ref: pr.head.sha,
+                });
+
+                const statuses = combinedStatus.statuses;
+
+                let allChecksPassed = true;
+                for (const checkName of requiredChecks) {
+                  const check = statuses.find((status) => status.context === checkName);
+                  if (!check || check.state !== 'success') {
+                    allChecksPassed = false;
+                    break;
+                  }
+                }
+
+                if (allChecksPassed) {
+                  return;
+                } else {
+                  // Wait 10 seconds before checking again
+                  await delay(10000);
+                }
+              }
+            }
+
+            await waitForChecks();
+
+      - name: Merge pull request
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.ACTIONS_TOKEN }}
+          script: |
+            github.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              merge_method: 'squash',
+            })
