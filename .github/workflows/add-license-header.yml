@@ -21,14 +21,17 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.x
-        
+
     - name: Append License Header to Files
       run: |
         # Define the license header template and comment prefix
         LICENSE_HEADER=$(cat license-header.txt)
         COMMENT_PREFIX="// "
 
-        # Comment out the license header if not already commented
+        # Remove trailing whitespace from the license header
+        LICENSE_HEADER=$(echo "$LICENSE_HEADER" | sed 's/[ \t]*$//g')
+
+        # Comment out the license header
         LICENSE_HEADER_COMMENTED=$(echo "$LICENSE_HEADER" | sed "s|^|$COMMENT_PREFIX|")
 
         # Loop through all Rust source files
