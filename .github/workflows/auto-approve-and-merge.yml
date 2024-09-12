@@ -2,46 +2,48 @@ name: Auto Approve and Merge
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types:
+      - opened
+      - synchronize
 
 jobs:
   auto-approve:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      contents: read
       statuses: read
       checks: read
-      contents: read
 
-    if: github.actor == 'github-actions[bot]' && github.event.pull_request.head.ref == 'formatting-fixes'
+    if: github.actor == 'github-actions[bot]' && (github.event.pull_request.head.ref == 'license-header-updates' || github.event.pull_request.head.ref == 'formatting-fixes')
 
     steps:
       - name: Auto-approve pull request
         uses: hmarr/auto-approve-action@v2
         with:
-          github-token: ${{ secrets.ACTIONS_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   auto-merge:
     needs: auto-approve
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      contents: read
       statuses: read
       checks: read
-      contents: read
 
-    if: github.actor == 'github-actions[bot]' && github.event.pull_request.head.ref == 'formatting-fixes'
+    if: github.actor == 'github-actions[bot]' && (github.event.pull_request.head.ref == 'license-header-updates' || github.event.pull_request.head.ref == 'formatting-fixes')
 
     steps:
       - name: Wait for status checks to pass
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.ACTIONS_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const pull_number = context.payload.pull_request.number;
-            const requiredChecks = ['Rust CI']; // Replace with your actual status check names
+            const requiredChecks = ['Rust CI']; // Update with your actual status check names
 
             async function waitForChecks() {
               const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -83,7 +85,7 @@ jobs:
       - name: Merge pull request
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.ACTIONS_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             github.pulls.merge({
               owner: context.repo.owner,
