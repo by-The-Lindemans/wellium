@@ -1,9 +1,9 @@
 //  This Source Code Form is subject to the terms of the Mozilla Public
 //  License, v. 2.0. If a copy of the MPL was not distributed with this
 //  file, You can obtain one at https://mozilla.org/MPL/2.0/.
-// 
+//
 //  Copyright 2024 — by The Lindemans, LLC
-//   
+//
 use leptos::*;
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlLinkElement, HtmlMetaElement};
@@ -44,7 +44,11 @@ struct Widget {
 
 impl Widget {
     fn new(name: &'static str, widget_aspect_ratio: f64, is_header: bool) -> Self {
-        Widget { name, widget_aspect_ratio, is_header }
+        Widget {
+            name,
+            widget_aspect_ratio,
+            is_header,
+        }
     }
 }
 
@@ -73,9 +77,9 @@ fn App() -> impl IntoView {
 
     // Initialize widgets with static aspect ratios
     let widgets = vec![
-        Widget::new("welliuᴍ", 0.5 / 3.0, false), 
-        Widget::new("Widget 2", 1.5 / 3.0, false),  
-        Widget::new("Widget 3", 2.0 / 3.0, false),  
+        Widget::new("welliuᴍ", 0.5 / 3.0, false),
+        Widget::new("Widget 2", 1.5 / 3.0, false),
+        Widget::new("Widget 3", 2.0 / 3.0, false),
         Widget::new("Header 2", 0.5 / 3.0, true), //header
         Widget::new("Widget 4", 1.0 / 3.0, false),
         Widget::new("Widget 5", 1.0 / 3.0, false),
