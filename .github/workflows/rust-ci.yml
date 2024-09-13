@@ -21,6 +21,8 @@ jobs:
       pull-requests: write
       issues: write
       actions: write
+      security-events: write
+
 
     steps:
       - name: Generate GitHub App Token
@@ -85,4 +87,5 @@ jobs:
         if: steps.changes.outputs.changes == 'false'
         uses: actions-rs/audit-check@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.generate_token.outputs.token }}
+
