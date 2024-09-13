@@ -11,22 +11,27 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v2
         with:
           toolchain: stable
+          components: rustfmt, clippy
+          override: true
 
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Build with wasm-pack
         run: wasm-pack build --release --target web
-        
+        working-directory: ./gui  # Navigate to the 'gui' crate
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./gui/dist
-          publish_branch: main
+          publish_dir: ./gui/dist  # Ensure this path is correct
+          publish_branch: gh-pages  # Typically 'gh-pages' for GitHub Pages
