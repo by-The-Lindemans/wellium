@@ -7,38 +7,33 @@ on:
       - synchronize
 
 jobs:
-  auto-approve:
+  auto-approve-and-merge:
     runs-on: ubuntu-latest
     permissions:
+      contents: write
       pull-requests: write
-      contents: read
-      statuses: read
       checks: read
+      statuses: read
 
     if: github.actor == 'github-actions[bot]' && (github.event.pull_request.head.ref == 'license-header-updates' || github.event.pull_request.head.ref == 'formatting-fixes')
 
     steps:
+      - name: Generate GitHub App Token
+        id: generate_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ vars.GH_APP_ID }}
+          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
       - name: Auto-approve pull request
         uses: hmarr/auto-approve-action@v2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.generate_token.outputs.token }}
 
-  auto-merge:
-    needs: auto-approve
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-      contents: read
-      statuses: read
-      checks: read
-
-    if: github.actor == 'github-actions[bot]' && (github.event.pull_request.head.ref == 'license-header-updates' || github.event.pull_request.head.ref == 'formatting-fixes')
-
-    steps:
       - name: Wait for status checks to pass
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.generate_token.outputs.token }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -85,7 +80,7 @@ jobs:
       - name: Merge pull request
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.generate_token.outputs.token }}
           script: |
             github.pulls.merge({
               owner: context.repo.owner,
