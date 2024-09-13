@@ -15,13 +15,22 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      checks: write  # Needed for waiting on status checks
-      statuses: write
+      issues: write
+      actions: write
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Generate GitHub App Token
+        id: generate_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ vars.GH_APP_ID }}
+          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Checkout code
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          token: ${{ steps.generate_token.outputs.token }}
 
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
@@ -60,7 +69,7 @@ jobs:
         if: steps.changes.outputs.changes == 'true'
         uses: peter-evans/create-pull-request@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.generate_token.outputs.token }}
           commit-message: "Apply rustfmt formatting"
           branch: formatting-fixes
           title: "Automated Formatting Fixes"
