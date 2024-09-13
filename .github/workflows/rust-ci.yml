@@ -94,6 +94,9 @@ jobs:
         if: steps.changes.outputs.changes == 'false'
         run: cargo test --verbose
 
-      - name: Run cargo audit
-        if: steps.changes.outputs.changes == 'false'
-        uses: actions-rs/audit-check@v1
+      - - name: Run cargo audit
+      if: steps.changes.outputs.changes == 'false'
+      uses: actions-rs/audit-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
