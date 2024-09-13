@@ -1,4 +1,4 @@
-name: Add License Header
+name: Add Source Header
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
-  add-license-header:
+  add-source-header:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -36,25 +36,25 @@ jobs:
       with:
         python-version: 3.x
 
-    - name: Append License Header to Files
+    - name: Append Source Header to Files
       run: |
-        # Define the license header template and comment prefix
-        LICENSE_HEADER=$(cat license-header.txt)
+        # Define the source header template and comment prefix
+        SOURCE_HEADER=$(cat source-header.txt)
         COMMENT_PREFIX="// "
 
-        # Remove trailing whitespace from the license header
-        LICENSE_HEADER=$(echo "$LICENSE_HEADER" | sed 's/[ \t]*$//g')
+        # Remove trailing whitespace from the source header
+        SOURCE_HEADER=$(echo "$SOURCE_HEADER" | sed 's/[ \t]*$//g')
 
-        # Comment out the license header
-        LICENSE_HEADER_COMMENTED=$(echo "$LICENSE_HEADER" | sed "s|^|$COMMENT_PREFIX|")
+        # Comment out the source header
+        SOURCE_HEADER_COMMENTED=$(echo "$SOURCE_HEADER" | sed "s|^|$COMMENT_PREFIX|")
 
         # Loop through all Rust source files
         for FILE in $(find . -name '*.rs'); do
           # Remove existing header (assume it's the first commented block)
           sed -i '/^\/\/ /d' "$FILE"
           
-          # Prepend the new license header
-          echo "$LICENSE_HEADER_COMMENTED" | cat - "$FILE" > temp && mv temp "$FILE"
+          # Prepend the new source header
+          echo "$SOURCE_HEADER_COMMENTED" | cat - "$FILE" > temp && mv temp "$FILE"
         done
 
     - name: Check if any files were modified
@@ -66,14 +66,14 @@ jobs:
           echo "changes=false" >> $GITHUB_OUTPUT
         fi
 
-    - name: Create Pull Request with License Header Updates
+    - name: Create Pull Request with Source Header Updates
       if: steps.changes.outputs.changes == 'true'
       uses: peter-evans/create-pull-request@v4
       with:
         token: ${{ steps.generate_token.outputs.token }}
-        commit-message: "Update license header in source files"
-        branch: license-header-updates
-        title: "Update License Headers"
+        commit-message: "Update source header in source files"
+        branch: source-header-updates
+        title: "Update Source Headers"
         body: |
-          This pull request updates the license headers in the source files.
+          This pull request updates the source headers in the source files.
         labels: automated
