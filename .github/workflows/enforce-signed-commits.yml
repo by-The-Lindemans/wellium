@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Enforce Signed Commits
-        uses: webfactory/commitlint-action@v2
+      - name: Verify GPG Signed Commits
+        uses: tj-actions/verify-commit@v1
         with:
-          commitlint_config: https://raw.githubusercontent.com/webfactory/commitlint-config-gpg-verified/master/index.js
+          fail_on_unsigned: true
