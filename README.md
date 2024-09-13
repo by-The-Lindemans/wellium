@@ -1,4 +1,4 @@
-# Wellium
+# wellium
 
 [![GitHub](https://img.shields.io/badge/github-by--The--Lindemans/wellium-8da0cb?style=for-the-badge&labelColor=007fff&logo=github)](https://github.com/by-The-Lindemans/wellium)
 [![WASM Build](https://img.shields.io/github/actions/workflow/status/by-The-Lindemans/wellium/deploy.yml?branch=main&style=for-the-badge)](https://github.com/by-The-Lindemans/wellium/actions/workflows/deploy.yml)
