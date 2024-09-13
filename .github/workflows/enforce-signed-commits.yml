@@ -13,6 +13,6 @@ jobs:
         with:
           fetch-depth: 0
       - name: Enforce Signed Commits
-        uses: webfactory/commitlint-action@v3
+        uses: webfactory/commitlint-action@v2
         with:
           commitlint_config: https://raw.githubusercontent.com/webfactory/commitlint-config-gpg-verified/master/index.js
