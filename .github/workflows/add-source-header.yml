@@ -14,7 +14,7 @@ jobs:
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.actor != 'github-actions[bot]' &&
-       github.actor != 'YourBotUsername' &&
+       github.actor != 'bythelindemans-actions-bot' &&
        (github.event.head_commit.author.email != 'your-bot-email@example.com' || github.event.head_commit.author.email == null))
     runs-on: ubuntu-latest
     permissions:
