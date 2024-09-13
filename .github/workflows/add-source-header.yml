@@ -3,19 +3,24 @@ name: Add Source Header
 on:
   push:
     paths:
-      - '**/*.rs'  # Add paths or file types you want to include
+      - '**/*.rs'
   pull_request:
     paths:
-      - '**/*.rs'  # Add paths or file types you want to include
-  workflow_dispatch:  # Allows manual triggering of the workflow
+      - '**/*.rs'
+  workflow_dispatch:
 
 jobs:
   add-source-header:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.actor != 'github-actions[bot]' &&
+       github.actor != 'YourBotUsername' &&
+       (github.event.head_commit.author.email != 'your-bot-email@example.com' || github.event.head_commit.author.email == null))
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
-      issues: write  # If you need to add labels or comments
+      issues: write
 
     steps:
     - name: Generate GitHub App Token
