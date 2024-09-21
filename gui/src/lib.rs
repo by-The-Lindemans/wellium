@@ -127,7 +127,7 @@ fn App() -> impl IntoView {
         ),
         Widget::new(
             "Header 2",
-            "This is a header widget.",
+            "",
             0.5 / 3.0,
             true,
             Rc::new(|| view! { <TextBlock text="" /> }), // No content for header widget
@@ -331,13 +331,6 @@ fn App() -> impl IntoView {
                     margin-bottom: 5px;
                 }
 
-                .header-title {
-                    align-self: flex-end; /* Bottom-align the title */
-                    margin-bottom: 0; /* Adjust margin as needed */
-                    padding: 5px 10px; /* Optional padding adjustment */
-                    font-size: larger; /* Optional: Increase font size for headers */
-                }
-
                 .widget-main-content {
                     flex: 1;
                     display: flex;
@@ -348,6 +341,16 @@ fn App() -> impl IntoView {
                 .widget-description {
                     text-align: center;
                     margin-top: 5px;
+                }
+
+                .header-widget {
+                    justify-content: flex-end; /* Align items to the bottom */
+                }
+
+                .header-title {
+                    text-align: center;
+                    margin-bottom: 10px;
+
                 }
 
                 /* Modal styles */
@@ -476,37 +479,39 @@ fn WidgetComponent(
                 if window_aspect_ratio > ((total_widgets as f64).clamp(12.0, 24.0) * -0.0558 + 2.0) {
                     // Landscape mode: widget width based on column calculation
                     let column_width = height / ((total_widgets as f64).clamp(12.0, 24.0) / 16.0);
-                    let widget_height = column_width * widget_aspect_ratio; // Calculate height based on widget aspect ratio
-
+                    let widget_height = column_width * widget_aspect_ratio;
                     base_style = format!("width: {}px; height: {}px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", column_width, widget_height);
                 } else {
                     // Portrait mode: maintain aspect ratio relative to widget width
-                    let widget_width = width; // Use full width
-                    let widget_height = widget_width * widget_aspect_ratio; // Maintain aspect ratio
-
+                    let widget_width = width;
+                    let widget_height = widget_width * widget_aspect_ratio;
                     base_style = format!("width: 100%; height: {}px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", widget_height);
                 }
 
-                // Add header-specific formatting if it's a header
                 if is_header {
                     base_style.push_str(" background-color: transparent; text-align: left; padding: 0px 10px;");
                 } else {
                     base_style.push_str(" background-color: black;");
                 }
 
-                // Add sticky style to the first widget
                 let sticky_style = if index == 0 { "position: sticky; top: 0; z-index: 1;" } else { "" };
                 format!("{} {}", base_style, sticky_style)
             }
         >
-            <div class="widget-content">
+            <div class={if is_header { "widget-content header-widget" } else { "widget-content" }}>
                 <div class={if is_header { "header-title" } else { "widget-title" }}>{name}</div>
-                <div class="widget-main-content">{ (content)() }</div>
-                <div class="widget-description">{description}</div>
+                <Show when=move || !is_header>
+                    <>
+                        <div class="widget-main-content">{ (content)() }</div>
+                        <div class="widget-description">{description}</div>
+                    </>
+                </Show>
             </div>
         </div>
     }
 }
+
+
 
 #[component]
 fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoView {
