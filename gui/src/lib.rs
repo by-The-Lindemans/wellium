@@ -299,8 +299,9 @@ fn App() -> impl IntoView {
                     --widget-background: black;
                     --text-color: white;
                     --accent-color: #007fff;
-                    --progress-bar-background: #444;
                     --progress-color: var(--accent-color);
+                    --darkened-background: rgba(255, 255, 255, 0.5);
+                    --border-radius: 10vw;
                 }
 
                 html, body {
@@ -371,14 +372,14 @@ fn App() -> impl IntoView {
                 
                 .progress-bar {
                     width: 80%;
-                    border-radius: 5px;
+                    border-radius: var(--border-radius);
                     overflow: hidden;
                     margin: 0 auto; /* Center the progress bar horizontally */
                 }
 
                 .progress {
                     height: 20px;
-                    background-color: green;
+                    background-color: var(--progress-color);
                     transition: width 0.3s;
                 }
 
@@ -389,7 +390,7 @@ fn App() -> impl IntoView {
                     left: 0;
                     width: 100%;
                     height: 100%;
-                    background: rgba(0, 0, 0, 0.5);
+                    background: var(--darkened-background);
                     display: flex;
                     align-items: flex-end;
                     justify-content: center;
@@ -399,8 +400,9 @@ fn App() -> impl IntoView {
                 .modal-content {
                     width: 100%;
                     height: 66%;
-                    border-top-left-radius: 10px;
-                    border-top-right-radius: 10px;
+                    background-color: var(--widget-background);
+                    border-top-left-radius: var(--border-radius);
+                    border-top-right-radius: var(--border-radius);
                     overflow: hidden;
                     display: flex;
                     flex-direction: column;
@@ -408,7 +410,7 @@ fn App() -> impl IntoView {
 
                 .modal-header {
                     display: flex;
-                    justify-content: space-between;
+                    justify-content: center;
                     align-items: center;
                     padding: 10px;
                 }
@@ -561,9 +563,9 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
                 </div>
                 <div class="modal-history">
                     // Render history data here
-                    <p>"Previous day's data for {widget.name}..."</p>
-                    <p>"Another entry for {widget.name}..."</p>
-                    <p>"More historical data for {widget.name}..."</p>
+                    <p>"Previous day's data..."</p>
+                    <p>"Another entry..."</p>
+                    <p>"More historical data..."</p>
                     // Add more history entries as needed
                 </div>
             </div>
