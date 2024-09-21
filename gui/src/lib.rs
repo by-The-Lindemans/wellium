@@ -64,10 +64,12 @@ impl Widget {
 }
 
 #[component]
-fn ProgressBar() -> impl IntoView {
+fn ProgressBar(percent: f64) -> impl IntoView {
+    let percent = percent.round();
+    let width_percentage = format!("{:.0}%", percent);
     view! {
         <div class="progress-bar">
-            <div class="progress" style="width: 50%; background-color: green; height: 20px;"></div>
+            <div class="progress" style:width=width_percentage></div>
         </div>
     }
 }
@@ -105,11 +107,11 @@ fn App() -> impl IntoView {
     // Initialize widgets with static aspect ratios
     let widgets = vec![
         Widget::new(
-            "Widget 1",
-            "This is the description for Widget 1.",
+            "",
+            "",
             0.5 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar /> }),
+            Rc::new(|| view! { <TextBlock text="welliuᴍ" /> }),
         ),
         Widget::new(
             "Widget 2",
@@ -137,7 +139,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 4.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar /> }),
+            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
         ),
         Widget::new(
             "Widget 5",
@@ -151,7 +153,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 6.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar /> }),
+            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
         ),
         Widget::new(
             "Widget 7",
@@ -165,7 +167,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 8.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar /> }),
+            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
         ),
         Widget::new(
             "Widget 9",
@@ -179,7 +181,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 10.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar /> }),
+            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
         ),
         Widget::new(
             "Widget 11",
@@ -193,7 +195,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 12.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar /> }),
+            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
         ),
         Widget::new(
             "Widget 13",
@@ -207,7 +209,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 14.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar /> }),
+            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
         ),
         Widget::new(
             "Widget 15",
@@ -221,7 +223,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 16.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar /> }),
+            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
         ),
         Widget::new(
             "Widget 17",
@@ -235,7 +237,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 18.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar /> }),
+            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
         ),
         Widget::new(
             "Widget 19",
@@ -249,7 +251,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 20.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar /> }),
+            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
         ),
         Widget::new(
             "Widget 21",
@@ -263,7 +265,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 22.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar /> }),
+            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
         ),
         Widget::new(
             "Widget 23",
@@ -277,20 +279,30 @@ fn App() -> impl IntoView {
             "This is the description for Widget 24.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar /> }),
+            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
         ),
     ];
 
     let total_widgets = widgets.len(); // Total number of widgets
 
     // Signal to track the selected widget for the modal
-    let (selected_widget, set_selected_widget) = create_signal::<Option<Widget>>(None);
+    let selected_widget = create_rw_signal::<Option<Widget>>(None);
 
     view! {
         <>
             <style>
                 {r#"
                 @import url('https://fonts.cdnfonts.com/css/code-new-roman');
+
+                :root {
+                    --background-color: #7f7f7f;
+                    --widget-background: black;
+                    --text-color: white;
+                    --accent-color: #007fff;
+                    --progress-bar-background: #444;
+                    --progress-color: var(--accent-color);
+                }
+
                 html, body {
                     margin: 0;
                     padding: 0;
@@ -300,8 +312,8 @@ fn App() -> impl IntoView {
                     overflow: hidden;
                     font-family: 'Code New Roman', monospace;
                     font-size: xx-large;
-                    background-color: #7f7f7f;
-                    color: white;
+                    background-color: var(--background-color);
+                    color: var(--text-color);
                 }
 
                 /* Hide scrollbars for any scrollable container */
@@ -323,6 +335,7 @@ fn App() -> impl IntoView {
                     justify-content: center;
                     width: 100%;
                     height: 100%;
+                    cursor: pointer;
                 }
 
                 .widget-title {
@@ -336,6 +349,9 @@ fn App() -> impl IntoView {
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    width: 100%;
+                    height: auto;
+
                 }
 
                 .widget-description {
@@ -351,6 +367,19 @@ fn App() -> impl IntoView {
                     text-align: center;
                     margin-bottom: 10px;
 
+                }
+                
+                .progress-bar {
+                    width: 80%;
+                    border-radius: 5px;
+                    overflow: hidden;
+                    margin: 0 auto; /* Center the progress bar horizontally */
+                }
+
+                .progress {
+                    height: 20px;
+                    background-color: green;
+                    transition: width 0.3s;
                 }
 
                 /* Modal styles */
@@ -368,7 +397,6 @@ fn App() -> impl IntoView {
                 }
 
                 .modal-content {
-                    background: #fff;
                     width: 100%;
                     height: 66%;
                     border-top-left-radius: 10px;
@@ -383,7 +411,6 @@ fn App() -> impl IntoView {
                     justify-content: space-between;
                     align-items: center;
                     padding: 10px;
-                    background-color: #f1f1f1;
                 }
 
                 .modal-main-content {
@@ -396,7 +423,6 @@ fn App() -> impl IntoView {
                 .modal-history {
                     height: 150px;
                     overflow-y: auto;
-                    background-color: #e9e9e9;
                     padding: 10px;
                 }
 
@@ -424,32 +450,43 @@ fn App() -> impl IntoView {
                     }
                 }
             >
-                {
-                    widgets.iter().enumerate().map(|(index, widget)| {
-                        let widget_clone = widget.clone();
-                        let set_selected_widget = set_selected_widget.clone();
-                        let window_size = window_size.clone();
-                        view! {
-                            <WidgetComponent
-                                widget=widget_clone
-                                index=index
-                                window_size=window_size
-                                total_widgets=total_widgets
-                                set_selected_widget=set_selected_widget
-                            />
-                        }
-                    }).collect::<Vec<_>>()
-                }
+            {
+                widgets.iter().enumerate().map(|(index, widget)| {
+                    let widget_clone = widget.clone();
+                    // No need to clone `selected_widget` here
+                    view! {
+                        <WidgetComponent
+                            widget=widget_clone
+                            index=index
+                            window_size=window_size
+                            total_widgets=total_widgets
+                            set_selected_widget=selected_widget
+                        />
+                    }
+                }).collect::<Vec<_>>()
+            }
             </div>
 
-            { selected_widget.get().map(|widget| {
-                view! {
-                    <ModalComponent
-                        widget=widget.clone()
-                        on_close=move || set_selected_widget.set(None)
-                    />
+            <Show
+            when=move || selected_widget.get().is_some()
+            fallback=|| ()
+        >
+            {
+                move || {
+                    // This closure will re-run whenever `selected_widget` changes
+                    if let Some(widget) = selected_widget.get() {
+                        view! {
+                            <ModalComponent
+                                widget=widget.clone()
+                                on_close=move || selected_widget.set(None)
+                            />
+                        }
+                    } else {
+                        ().into_view()
+                    }
                 }
-            }) }
+            }
+        </Show>
         </>
     }
 }
@@ -460,7 +497,7 @@ fn WidgetComponent(
     index: usize,
     window_size: ReadSignal<(f64, f64)>,
     total_widgets: usize,
-    set_selected_widget: WriteSignal<Option<Widget>>,
+    set_selected_widget: RwSignal<Option<Widget>>,
 ) -> impl IntoView {
     let Widget { name, description, widget_aspect_ratio, is_header, content, .. } = widget.clone();
 
@@ -489,11 +526,11 @@ fn WidgetComponent(
                 }
 
                 if is_header {
-                    base_style.push_str(" background-color: transparent; text-align: left; padding: 0px 10px;");
+                    base_style.push_str(" background-color: transparent; text-align: center; padding: 0px 10px;");
                 } else {
                     base_style.push_str(" background-color: black;");
                 }
-
+                
                 let sticky_style = if index == 0 { "position: sticky; top: 0; z-index: 1;" } else { "" };
                 format!("{} {}", base_style, sticky_style)
             }
@@ -510,8 +547,6 @@ fn WidgetComponent(
         </div>
     }
 }
-
-
 
 #[component]
 fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoView {
@@ -535,3 +570,4 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
         </div>
     }
 }
+
