@@ -306,6 +306,19 @@ fn App() -> impl IntoView {
                     --drop-shadow: 0px 0px 0.5vw rgba(255, 255, 255, 0.5);
                 }
 
+                * {
+                    -webkit-overflow-scrolling: touch;
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                    justify-content: center;
+                    align-items: center;
+                    text-align: center;
+                }
+
+                *-webkit-scrollbar {
+                    display: none;  /* Chrome, Safari, Opera */
+                }
+
                 html, body {
                     margin: 0;
                     padding: 0;
@@ -319,16 +332,11 @@ fn App() -> impl IntoView {
                     color: var(--text-color);
                 }
 
-                /* Hide scrollbars for any scrollable container */
                 #app {
                     height: 100%;
                     overflow: hidden;
-                    -ms-overflow-style: none;  /* IE and Edge */
-                    scrollbar-width: none;  /* Firefox */
-                }
-
-                #app::-webkit-scrollbar {
-                    display: none;  /* Chrome, Safari, Opera */
+                     align-items: flex-start; /* Override to top-align items */
+                    justify-content: flex-start; /* Override to align items to the start */
                 }
 
                 /*.widget{
@@ -338,15 +346,12 @@ fn App() -> impl IntoView {
                 .widget-content {
                     display: flex;
                     flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
                     width: 100%;
                     height: 100%;
                     cursor: pointer;
                 }
 
                 .widget-title {
-                    text-align: center;
                     font-weight: bold;
                     margin-bottom: 5px;
                 }
@@ -355,32 +360,20 @@ fn App() -> impl IntoView {
                     flex: 1;
                     display: flex;
                     align-items: center;
-                    justify-content: center;
                     width: 100%;
                     height: auto;
 
                 }
 
-                .widget-description {
-                    text-align: center;
-                    margin-top: 5px;
-                }
-
                 .header-widget {
-                    justify-content: flex-end; /* Align items to the bottom */
-                }
-
-                .header-title {
-                    text-align: center;
-                    margin-bottom: 10px;
-
+                    justify-content: flex-end; 
                 }
                 
                 .progress-bar {
                     width: 80%;
                     border-radius: var(--border-radius);
                     overflow: hidden;
-                    margin: 0 auto; /* Center the progress bar horizontally */
+                    margin: 0 auto;
                 }
 
                 .progress {
@@ -396,50 +389,27 @@ fn App() -> impl IntoView {
                     left: 0;
                     width: 100%;
                     height: 100%;
-                    overflow-y: scroll; /* Make the overlay scrollable */
                     background: var(--faded-background);
                     z-index: 1000;
-                    -webkit-overflow-scrolling: touch; /* Enable smooth scrolling on iOS */
+                    overflow-y: hidden;
                 }
 
                 .modal-content {
-                    position: absolute;
-                    top: calc(100vh - 66.66vh); /* Start at bottom one-third of the viewport */
+                    position: fixed;
+                    bottom: 0;
                     left: 0;
                     width: 100%;
-                    min-height: 66.66vh; /* Ensure the modal content takes up at least two-thirds of the viewport */
+                    height: 66.66vh;
                     background-color: var(--widget-background);
                     border-top-left-radius: var(--border-radius);
                     border-top-right-radius: var(--border-radius);
-                    overflow: hidden;
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .modal-header {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    padding: 10px;
-                }
-
-                .modal-main-content {
-                    flex: 1;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .modal-history {
-                    height: 150px;
-                    padding: 10px;
-                    overflow: visible;
+                    overflow-y: auto;
+                    overflow-x: hidden;
                 }
 
                 .modal-history p {
-                    margin: 0;
-                    padding: 5px 0;
-                    border-bottom: 1px solid #ccc;
+                    text-align: left;
+                    border-top: 1px solid var(--background-color);
                 }
 
                 "#}
@@ -606,15 +576,20 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
         }
     };
 
+    // Generate historical data to ensure scrolling is needed
+    let historical_data = (0..20).map(|i| {
+        view! { <p>{format!("Historical data entry {}", i + 1)}</p> }
+    }).collect::<Vec<_>>();
+
     view! {
         <div
             class="modal-overlay"
             node_ref=modal_overlay_ref
             on:click=on_close_click
-        >
+                    >
             <div
                 class="modal-content"
-                node_ref=modal_content_ref
+node_ref=modal_content_ref
                 on:click=|e| e.stop_propagation()
                 on:wheel=on_wheel
                 on:scroll=on_scroll
@@ -626,11 +601,7 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
                     { (widget.content)() }
                 </div>
                 <div class="modal-history">
-                    <p>"Previous day's data..."</p>
-                    <p>"Another entry..."</p>
-                    <p>"More historical data..."</p>
-                    <p>"More historical data..."</p>
-                    <p>"More historical data..."</p>
+                    { historical_data }
                 </div>
             </div>
         </div>

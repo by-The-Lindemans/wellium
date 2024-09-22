@@ -405,7 +405,6 @@ dependencies = [
  "leptos_macro",
  "leptos_router",
  "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
