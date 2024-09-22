@@ -287,6 +287,7 @@ fn App() -> impl IntoView {
         <>
             <style>
                 {r#"
+                @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
                 @import url('https://fonts.cdnfonts.com/css/code-new-roman');
 
                 :root {
@@ -307,7 +308,6 @@ fn App() -> impl IntoView {
                     justify-content: center;
                     align-items: center;
                     text-align: center;
-                    font-family: 'Code New Roman', monospace;
                     color: var(--text-color);
                 }
 
@@ -322,6 +322,7 @@ fn App() -> impl IntoView {
                     overflow: hidden;
                     background-color: var(--background-color);
                     font-size: xx-large;
+                    font-family: "Noto Sans", sans-serif;
                 }
 
                 #app {
@@ -332,6 +333,7 @@ fn App() -> impl IntoView {
                 }
 
                 .widget-content {
+                    background-color: black;
                     display: flex;
                     flex-direction: column;
                     width: 100%;
@@ -344,7 +346,7 @@ fn App() -> impl IntoView {
                 }
 
                 .widget-main-content {
-                    flex: 1;
+                    flex: 2;
                     display: flex;
                     align-items: center;
                     width: 100%;
@@ -352,8 +354,25 @@ fn App() -> impl IntoView {
 
                 }
 
+                .widget-title,
+                .widget-description {
+                    flex: 1;
+                    display: flex;
+                }
+
+                #title-widget {
+                    display: block;
+                    position: sticky; 
+                    top: 0; 
+                    z-index: 1;
+                    font-family: 'Code New Roman', monospace;
+                    cursor: default;
+                }
+
                 .header-widget {
                     justify-content: flex-end; 
+                    background-color: transparent;
+                    cursor: default;
                 }
                 
                 .progress-bar {
@@ -396,6 +415,8 @@ fn App() -> impl IntoView {
                 .modal-history p {
                     text-align: left;
                     border-top: 1px solid var(--background-color);
+                    padding: 0 1vw;
+
                 }
 
                 "#}
@@ -426,7 +447,7 @@ fn App() -> impl IntoView {
                             set_selected_widget=selected_widget
                         />
                     }
-                }).collect::<Vec<_>>()
+                }).collect::<Vec<_>>()  
             }
             </div>
 
@@ -472,11 +493,12 @@ fn WidgetComponent(
                     set_selected_widget.set(Some(widget.clone()));
                 }
             }
+            id=move || if index == 0 { Some("title-widget") } else { None }
             style=move || {
                 let (width, height) = window_size.get();
                 let window_aspect_ratio = width / height;
 
-                let mut base_style;
+                let base_style;
 
                 if window_aspect_ratio > ((total_widgets as f64).clamp(12.0, 24.0) * -0.0558 + 2.0) {
                     let column_width = height / ((total_widgets as f64).clamp(12.0, 24.0) / 16.0);
@@ -487,15 +509,8 @@ fn WidgetComponent(
                     let widget_height = widget_width * widget_aspect_ratio;
                     base_style = format!("width: 100%; height: {}px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", widget_height);
                 }
-
-                if is_header {
-                    base_style.push_str(" background-color: transparent; text-align: center; padding: 0px 10px;");
-                } else {
-                    base_style.push_str(" background-color: black;");
-                }
                 
-                let sticky_style = if index == 0 { "position: sticky; top: 0; z-index: 1;" } else { "" };
-                format!("{} {}", base_style, sticky_style)
+                base_style
             }
         >
             <div class={if is_header { "widget-content header-widget" } else { "widget-content" }}>
