@@ -20,17 +20,14 @@ pub fn main() {
 fn setup_document() {
     let document = window().unwrap().document().unwrap();
 
-    // Set the document title
     document.set_title("welliuᴍ");
 
-    // Add the favicon
     let link: HtmlLinkElement = document.create_element("link").unwrap().dyn_into().unwrap();
     link.set_rel("icon");
     link.set_href("./favicon.ico");
     link.set_type("image/x-icon");
     document.head().unwrap().append_child(&link).unwrap();
 
-    // Add the viewport meta tag to control scaling on mobile devices
     let meta: HtmlMetaElement = document.create_element("meta").unwrap().dyn_into().unwrap();
     meta.set_name("viewport");
     meta.set_content("width=device-width, initial-scale=1.0, user-scalable=no");
@@ -41,8 +38,8 @@ fn setup_document() {
 struct Widget {
     name: &'static str,
     description: &'static str,
-    widget_aspect_ratio: f64, // Static aspect ratio for each widget
-    is_header: bool,          // Indicates if the widget is a header
+    widget_aspect_ratio: f64,
+    is_header: bool,
     content: Rc<dyn Fn() -> View>,
 }
 
@@ -84,7 +81,6 @@ fn TextBlock(text: &'static str) -> impl IntoView {
 
 #[component]
 fn App() -> impl IntoView {
-    // Track window size to determine orientation and manage layout
     let (window_size, set_window_size) = create_signal((0.0, 0.0));
 
     let update_window_size = move || {
@@ -105,7 +101,6 @@ fn App() -> impl IntoView {
 
     update_window_size();
 
-    // Initialize widgets with static aspect ratios
     let widgets = vec![
         Widget::new(
             "",
@@ -133,7 +128,7 @@ fn App() -> impl IntoView {
             "",
             0.5 / 3.0,
             true,
-            Rc::new(|| view! { <TextBlock text="" /> }), // No content for header widget
+            Rc::new(|| view! { <TextBlock text="" /> }),
         ),
         Widget::new(
             "Widget 4",
@@ -284,9 +279,8 @@ fn App() -> impl IntoView {
         ),
     ];
 
-    let total_widgets = widgets.len(); // Total number of widgets
+    let total_widgets = widgets.len();
 
-    // Signal to track the selected widget for the modal
     let selected_widget = create_rw_signal::<Option<Widget>>(None);
 
     view! {
@@ -296,7 +290,7 @@ fn App() -> impl IntoView {
                 @import url('https://fonts.cdnfonts.com/css/code-new-roman');
 
                 :root {
-                    --background-color: #7f7f7f; /*black*/
+                    --background-color: #7f7f7f; 
                     --widget-background: black;
                     --text-color: white;
                     --accent-color: #007fff;
@@ -313,35 +307,29 @@ fn App() -> impl IntoView {
                     justify-content: center;
                     align-items: center;
                     text-align: center;
+                    font-family: 'Code New Roman', monospace;
+                    color: var(--text-color);
                 }
 
                 *-webkit-scrollbar {
-                    display: none;  /* Chrome, Safari, Opera */
+                    display: none;
                 }
 
                 html, body {
                     margin: 0;
-                    padding: 0;
-                    gap: 0;
                     height: 100%;
                     width: 100%;
                     overflow: hidden;
-                    font-family: 'Code New Roman', monospace;
-                    font-size: xx-large;
                     background-color: var(--background-color);
-                    color: var(--text-color);
+                    font-size: xx-large;
                 }
 
                 #app {
                     height: 100%;
                     overflow: hidden;
-                     align-items: flex-start; /* Override to top-align items */
-                    justify-content: flex-start; /* Override to align items to the start */
+                    align-items: flex-start;
+                    justify-content: flex-start; 
                 }
-
-                /*.widget{
-                    box-shadow: var(--drop-shadow);
-                }*/
 
                 .widget-content {
                     display: flex;
@@ -353,7 +341,6 @@ fn App() -> impl IntoView {
 
                 .widget-title {
                     font-weight: bold;
-                    margin-bottom: 5px;
                 }
 
                 .widget-main-content {
@@ -382,7 +369,6 @@ fn App() -> impl IntoView {
                     transition: width 0.3s;
                 }
 
-                /* Modal styles */
                 .modal-overlay {
                     position: fixed;
                     top: 0;
@@ -422,10 +408,8 @@ fn App() -> impl IntoView {
                     let window_aspect_ratio = width / height;
 
                     if window_aspect_ratio > ((total_widgets as f64).clamp(12.0, 24.0) * -0.0558 + 2.0) {
-                        // Landscape: allow for horizontal scrolling, wrap widgets into columns based on their height and aspect ratio
                         format!("display: flex; flex-wrap: wrap; flex-direction: column; height: 100%; width: {}px; overflow-x: auto; overflow-y: hidden; margin: 0; padding: 0; gap: 5px;", width)
                     } else {
-                        // Portrait: vertical scrolling with grid layout
                         "display: grid; grid-template-columns: 1fr; grid-auto-rows: min-content; width: 100%; height: 100%; overflow-y: auto; gap: 5px;".to_string()
                     }
                 }
@@ -433,7 +417,6 @@ fn App() -> impl IntoView {
             {
                 widgets.iter().enumerate().map(|(index, widget)| {
                     let widget_clone = widget.clone();
-                    // No need to clone `selected_widget` here
                     view! {
                         <WidgetComponent
                             widget=widget_clone
@@ -453,7 +436,6 @@ fn App() -> impl IntoView {
         >
             {
                 move || {
-                    // This closure will re-run whenever `selected_widget` changes
                     if let Some(widget) = selected_widget.get() {
                         view! {
                             <ModalComponent
@@ -486,7 +468,9 @@ fn WidgetComponent(
             key=index
             class="widget"
             on:click=move |_| {
-                set_selected_widget.set(Some(widget.clone()));
+                if !widget.is_header && index != 0 {
+                    set_selected_widget.set(Some(widget.clone()));
+                }
             }
             style=move || {
                 let (width, height) = window_size.get();
@@ -495,12 +479,10 @@ fn WidgetComponent(
                 let mut base_style;
 
                 if window_aspect_ratio > ((total_widgets as f64).clamp(12.0, 24.0) * -0.0558 + 2.0) {
-                    // Landscape mode: widget width based on column calculation
                     let column_width = height / ((total_widgets as f64).clamp(12.0, 24.0) / 16.0);
                     let widget_height = column_width * widget_aspect_ratio;
                     base_style = format!("width: {}px; height: {}px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", column_width, widget_height);
                 } else {
-                    // Portrait mode: maintain aspect ratio relative to widget width
                     let widget_width = width;
                     let widget_height = widget_width * widget_aspect_ratio;
                     base_style = format!("width: 100%; height: {}px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", widget_height);
@@ -529,17 +511,15 @@ fn WidgetComponent(
     }
 }
 
+
 #[component]
 fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoView {
     use std::rc::Rc;
 
-    // Wrap on_close in an Rc to allow multiple ownership
     let on_close_rc = Rc::new(on_close);
 
-    // Create node references
     let modal_content_ref = create_node_ref::<html::Div>();
 
-    // Event handler for closing the modal when clicking outside
     let on_close_click = {
         let on_close_rc = on_close_rc.clone();
         move |_| {
@@ -547,7 +527,6 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
         }
     };
 
-    // Event handler for the wheel event (desktop)
     let on_wheel = {
         let on_close_rc = on_close_rc.clone();
         let modal_content_ref = modal_content_ref.clone();
@@ -556,7 +535,6 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
             if let Some(content) = modal_content_ref.get() {
                 let scroll_top = content.scroll_top();
                 if e.delta_y() < 0.0 && scroll_top <= 0 {
-                    // Scrolling up from the top position
                     e.prevent_default();
                     (on_close_rc)();
                 }
@@ -564,7 +542,6 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
         }
     };
 
-    // Generate historical data to ensure scrolling is needed
     let historical_data = (0..20)
         .map(|i| {
             view! { <p>{format!("Historical data entry {}", i + 1)}</p> }
