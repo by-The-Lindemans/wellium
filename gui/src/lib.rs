@@ -531,11 +531,12 @@ fn WidgetComponent(
 
 #[component]
 fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoView {
+    use std::rc::Rc;
+
     // Wrap on_close in an Rc to allow multiple ownership
     let on_close_rc = Rc::new(on_close);
 
     // Create node references
-    let modal_overlay_ref = create_node_ref::<html::Div>();
     let modal_content_ref = create_node_ref::<html::Div>();
 
     // Event handler for closing the modal when clicking outside
@@ -550,26 +551,13 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
     let on_wheel = {
         let on_close_rc = on_close_rc.clone();
         let modal_content_ref = modal_content_ref.clone();
-        move |e: web_sys::WheelEvent| {
-            if e.delta_y() < 0.0 {
-                if let Some(content) = modal_content_ref.get() {
-                    if content.scroll_top() <= 0 {
-                        e.prevent_default();
-                        (on_close_rc)();
-                    }
-                }
-            }
-        }
-    };
 
-    // Event handler for the scroll event
-    let on_scroll = {
-        let on_close_rc = on_close_rc.clone();
-        let modal_content_ref = modal_content_ref.clone();
-        move |_| {
+        move |e: web_sys::WheelEvent| {
             if let Some(content) = modal_content_ref.get() {
-                if content.scroll_top() <= 0 {
-                    // Close the modal when scrolled to the top
+                let scroll_top = content.scroll_top();
+                if e.delta_y() < 0.0 && scroll_top <= 0 {
+                    // Scrolling up from the top position
+                    e.prevent_default();
                     (on_close_rc)();
                 }
             }
@@ -577,22 +565,22 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
     };
 
     // Generate historical data to ensure scrolling is needed
-    let historical_data = (0..20).map(|i| {
-        view! { <p>{format!("Historical data entry {}", i + 1)}</p> }
-    }).collect::<Vec<_>>();
+    let historical_data = (0..20)
+        .map(|i| {
+            view! { <p>{format!("Historical data entry {}", i + 1)}</p> }
+        })
+        .collect::<Vec<_>>();
 
     view! {
         <div
             class="modal-overlay"
-            node_ref=modal_overlay_ref
             on:click=on_close_click
-                    >
+        >
             <div
                 class="modal-content"
-node_ref=modal_content_ref
+                node_ref=modal_content_ref
                 on:click=|e| e.stop_propagation()
                 on:wheel=on_wheel
-                on:scroll=on_scroll
             >
                 <div class="modal-header">
                     <h2>{widget.name}</h2>
