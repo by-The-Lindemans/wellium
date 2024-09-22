@@ -8,6 +8,7 @@ use leptos::*;
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlLinkElement, HtmlMetaElement};
 use std::rc::Rc;
+use wasm_bindgen::JsCast;
 
 #[wasm_bindgen(start)]
 pub fn main() {
@@ -295,13 +296,14 @@ fn App() -> impl IntoView {
                 @import url('https://fonts.cdnfonts.com/css/code-new-roman');
 
                 :root {
-                    --background-color: #7f7f7f;
+                    --background-color: #7f7f7f; /*black*/
                     --widget-background: black;
                     --text-color: white;
                     --accent-color: #007fff;
                     --progress-color: var(--accent-color);
-                    --darkened-background: rgba(255, 255, 255, 0.5);
+                    --faded-background: rgba(255, 255, 255, 0.15);
                     --border-radius: 10vw;
+                    --drop-shadow: 0px 0px 0.5vw rgba(255, 255, 255, 0.5);
                 }
 
                 html, body {
@@ -328,6 +330,10 @@ fn App() -> impl IntoView {
                 #app::-webkit-scrollbar {
                     display: none;  /* Chrome, Safari, Opera */
                 }
+
+                /*.widget{
+                    box-shadow: var(--drop-shadow);
+                }*/
 
                 .widget-content {
                     display: flex;
@@ -390,16 +396,18 @@ fn App() -> impl IntoView {
                     left: 0;
                     width: 100%;
                     height: 100%;
-                    background: var(--darkened-background);
-                    display: flex;
-                    align-items: flex-end;
-                    justify-content: center;
+                    overflow-y: scroll; /* Make the overlay scrollable */
+                    background: var(--faded-background);
                     z-index: 1000;
+                    -webkit-overflow-scrolling: touch; /* Enable smooth scrolling on iOS */
                 }
 
                 .modal-content {
+                    position: absolute;
+                    top: calc(100vh - 66.66vh); /* Start at bottom one-third of the viewport */
+                    left: 0;
                     width: 100%;
-                    height: 66%;
+                    min-height: 66.66vh; /* Ensure the modal content takes up at least two-thirds of the viewport */
                     background-color: var(--widget-background);
                     border-top-left-radius: var(--border-radius);
                     border-top-right-radius: var(--border-radius);
@@ -424,8 +432,8 @@ fn App() -> impl IntoView {
 
                 .modal-history {
                     height: 150px;
-                    overflow-y: auto;
                     padding: 10px;
+                    overflow: visible;
                 }
 
                 .modal-history p {
@@ -506,6 +514,7 @@ fn WidgetComponent(
     view! {
         <div
             key=index
+            class="widget"
             on:click=move |_| {
                 set_selected_widget.set(Some(widget.clone()));
             }
@@ -552,9 +561,64 @@ fn WidgetComponent(
 
 #[component]
 fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoView {
+    // Wrap on_close in an Rc to allow multiple ownership
+    let on_close_rc = Rc::new(on_close);
+
+    // Create node references
+    let modal_overlay_ref = create_node_ref::<html::Div>();
+    let modal_content_ref = create_node_ref::<html::Div>();
+
+    // Event handler for closing the modal when clicking outside
+    let on_close_click = {
+        let on_close_rc = on_close_rc.clone();
+        move |_| {
+            (on_close_rc)();
+        }
+    };
+
+    // Event handler for the wheel event (desktop)
+    let on_wheel = {
+        let on_close_rc = on_close_rc.clone();
+        let modal_content_ref = modal_content_ref.clone();
+        move |e: web_sys::WheelEvent| {
+            if e.delta_y() < 0.0 {
+                if let Some(content) = modal_content_ref.get() {
+                    if content.scroll_top() <= 0 {
+                        e.prevent_default();
+                        (on_close_rc)();
+                    }
+                }
+            }
+        }
+    };
+
+    // Event handler for the scroll event
+    let on_scroll = {
+        let on_close_rc = on_close_rc.clone();
+        let modal_content_ref = modal_content_ref.clone();
+        move |_| {
+            if let Some(content) = modal_content_ref.get() {
+                if content.scroll_top() <= 0 {
+                    // Close the modal when scrolled to the top
+                    (on_close_rc)();
+                }
+            }
+        }
+    };
+
     view! {
-        <div class="modal-overlay" on:click=move |_| on_close()>
-            <div class="modal-content" on:click=|e| e.stop_propagation()>
+        <div
+            class="modal-overlay"
+            node_ref=modal_overlay_ref
+            on:click=on_close_click
+        >
+            <div
+                class="modal-content"
+                node_ref=modal_content_ref
+                on:click=|e| e.stop_propagation()
+                on:wheel=on_wheel
+                on:scroll=on_scroll
+            >
                 <div class="modal-header">
                     <h2>{widget.name}</h2>
                 </div>
@@ -562,14 +626,13 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
                     { (widget.content)() }
                 </div>
                 <div class="modal-history">
-                    // Render history data here
                     <p>"Previous day's data..."</p>
                     <p>"Another entry..."</p>
                     <p>"More historical data..."</p>
-                    // Add more history entries as needed
+                    <p>"More historical data..."</p>
+                    <p>"More historical data..."</p>
                 </div>
             </div>
         </div>
     }
 }
-
