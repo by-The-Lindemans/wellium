@@ -559,7 +559,7 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
         }
     };
 
-    let historical_data = (0..20)
+    let historical_data = (0..30)
         .map(|i| {
             view! { <p>{format!("Historical data entry {}", i + 1)}</p> }
         })
