@@ -379,16 +379,17 @@ fn App() -> impl IntoView {
                 }
                 
                 .progress-bar {
-                    width: 80%;
+                    width: 75%;
+                    height: 25%;
                     border-radius: var(--border-radius);
+                    background-color: var(--background-color);
                     overflow: hidden;
                     margin: 0 auto;
                 }
 
                 .progress {
-                    height: 20px;
+                    height: 100%;
                     background-color: var(--progress-color);
-                    transition: width 0.3s;
                 }
 
                 .modal-overlay {
@@ -413,6 +414,10 @@ fn App() -> impl IntoView {
                     border-top-right-radius: var(--border-radius);
                     overflow-y: auto;
                     overflow-x: hidden;
+                }
+
+                .modal-main-content {
+                    height:25%;
                 }
 
                 .modal-history p {
