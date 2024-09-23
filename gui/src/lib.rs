@@ -366,7 +366,10 @@ fn App() -> impl IntoView {
                     top: 0; 
                     z-index: 1;
                     font-family: 'Code New Roman', monospace;
-                    cursor: default;
+                }
+
+                #title-widget .widget-content {
+                    cursor: default;                
                 }
 
                 .header-widget {
@@ -416,7 +419,6 @@ fn App() -> impl IntoView {
                     text-align: left;
                     border-top: 1px solid var(--background-color);
                     padding: 0 1vw;
-
                 }
 
                 "#}
