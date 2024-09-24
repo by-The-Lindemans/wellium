@@ -385,13 +385,23 @@ fn App() -> impl IntoView {
                     background-color: var(--background-color);
                     overflow: hidden;
                     margin: 0 auto;
+                    padding: 0.5%;
+                    box-sizing: border-box;
+                    display: flex;
+                    align-items: center; 
+                    justify-content: flex-start; 
+                    position: relative;
                 }
 
                 .progress {
+                    width: calc(100% - 4%);
                     height: 100%;
                     background-color: var(--progress-color);
+                    border-radius: calc(var(--border-radius) - 1%);
+                    box-sizing: border-box;
+                    margin-left: 0;
                 }
-
+                    
                 .modal-overlay {
                     position: fixed;
                     top: 0;
