@@ -73,6 +73,32 @@ fn ProgressBar(percent: f64) -> impl IntoView {
 }
 
 #[component]
+fn LabeledProgressBar(numerator: u32, denominator: u32) -> impl IntoView {
+    let percent = if denominator != 0 {
+        (numerator as f64 / denominator as f64) * 100.0
+    } else {
+        0.0
+    }
+    .round();
+    let width_percentage = format!("{:.0}%", percent);
+
+    view! {
+        <div class="labeled-progress-bar">
+            <div class="percentage-label">{ format!("{:.0}%", percent) }</div>
+            <div class="progress-container">
+                <ProgressBar percent=percent />
+            </div>
+            <div class="labels">
+                <span class="label-left">0</span>
+                <span class="label-center">{ numerator }</span>
+                <span class="label-right">{ denominator }</span>
+            </div>
+        </div>
+    }
+}
+
+
+#[component]
 fn TextBlock(text: &'static str) -> impl IntoView {
     view! {
         <p>{text}</p>
@@ -130,12 +156,13 @@ fn App() -> impl IntoView {
             true,
             Rc::new(|| view! { <TextBlock text="" /> }),
         ),
+        // Updated Widgets: Replaced ProgressBar with LabeledProgressBar
         Widget::new(
             "Widget 4",
             "This is the description for Widget 4.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
+            Rc::new(|| view! { <LabeledProgressBar numerator=0 denominator=100 /> }),
         ),
         Widget::new(
             "Widget 5",
@@ -149,7 +176,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 6.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
+            Rc::new(|| view! { <LabeledProgressBar numerator=10 denominator=100 /> }),
         ),
         Widget::new(
             "Widget 7",
@@ -163,7 +190,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 8.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
+            Rc::new(|| view! { <LabeledProgressBar numerator=20 denominator=100 /> }),
         ),
         Widget::new(
             "Widget 9",
@@ -177,7 +204,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 10.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
+            Rc::new(|| view! { <LabeledProgressBar numerator=30 denominator=100 /> }),
         ),
         Widget::new(
             "Widget 11",
@@ -191,7 +218,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 12.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
+            Rc::new(|| view! { <LabeledProgressBar numerator=40 denominator=100 /> }),
         ),
         Widget::new(
             "Widget 13",
@@ -205,7 +232,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 14.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
+            Rc::new(|| view! { <LabeledProgressBar numerator=50 denominator=100 /> }),
         ),
         Widget::new(
             "Widget 15",
@@ -219,7 +246,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 16.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
+            Rc::new(|| view! { <LabeledProgressBar numerator=60 denominator=100 /> }),
         ),
         Widget::new(
             "Widget 17",
@@ -233,7 +260,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 18.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
+            Rc::new(|| view! { <LabeledProgressBar numerator=70 denominator=100 /> }),
         ),
         Widget::new(
             "Widget 19",
@@ -247,7 +274,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 20.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
+            Rc::new(|| view! { <LabeledProgressBar numerator=80 denominator=100 /> }),
         ),
         Widget::new(
             "Widget 21",
@@ -261,7 +288,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 22.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
+            Rc::new(|| view! { <LabeledProgressBar numerator=90 denominator=100 /> }),
         ),
         Widget::new(
             "Widget 23",
@@ -275,7 +302,7 @@ fn App() -> impl IntoView {
             "This is the description for Widget 24.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <ProgressBar percent=75.0 /> }),
+            Rc::new(|| view! { <LabeledProgressBar numerator=100 denominator=100 /> }),
         ),
     ];
 
@@ -378,18 +405,38 @@ fn App() -> impl IntoView {
                     cursor: default;
                 }
                 
-                .progress-bar {
+                .labeled-progress-bar {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
                     width: 75%;
-                    height: 25%;
+                    margin: 0 auto;
+                    height: 100%;
+                    font-size: medium;
+                }
+
+                .percentage-label {
+                    flex: 0 0 25%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                }
+
+                .progress-container {
+                    flex: 0 0 50%;
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .progress-bar {
+                    width: 100%;
+                    height: 100%;
                     border-radius: var(--border-radius);
                     background-color: var(--background-color);
                     overflow: hidden;
-                    margin: 0 auto;
-                    padding: 0.5%;
-                    box-sizing: border-box;
-                    display: flex;
-                    align-items: center; 
-                    justify-content: flex-start; 
                     position: relative;
                 }
 
@@ -401,7 +448,30 @@ fn App() -> impl IntoView {
                     box-sizing: border-box;
                     margin-left: 0;
                 }
-                    
+
+                .labels {
+                    flex: 0 0 25%;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    width: 100%;
+                }
+
+                .label-left,
+                .label-center,
+                .label-right {
+                    width: 33%;
+                }
+
+                .label-left {
+                    text-align: left;
+                }
+
+                .label-right {
+                    text-align: right;
+                }
+
+
                 .modal-overlay {
                     position: fixed;
                     top: 0;
@@ -469,25 +539,25 @@ fn App() -> impl IntoView {
             </div>
 
             <Show
-            when=move || selected_widget.get().is_some()
-            fallback=|| ()
-        >
-            {
-                move || {
-                    if let Some(widget) = selected_widget.get() {
-                        view! {
-                            <ModalComponent
-                                widget=widget.clone()
-                                on_close=move || selected_widget.set(None)
-                            />
+                when=move || selected_widget.get().is_some()
+                fallback=|| ()
+            >
+                {
+                    move || {
+                        if let Some(widget) = selected_widget.get() {
+                            view! {
+                                <ModalComponent
+                                    widget=widget.clone()
+                                    on_close=move || selected_widget.set(None)
+                                />
+                            }
+                        } else {
+                            ().into_view()
                         }
-                    } else {
-                        ().into_view()
                     }
                 }
-            }
-        </Show>
-        </>
+            </Show>
+            </>
     }
 }
 
@@ -542,7 +612,6 @@ fn WidgetComponent(
         </div>
     }
 }
-
 
 #[component]
 fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoView {
