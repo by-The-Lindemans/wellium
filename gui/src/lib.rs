@@ -80,7 +80,6 @@ fn LabeledProgressBar(numerator: u32, denominator: u32) -> impl IntoView {
         0.0
     }
     .round();
-    let width_percentage = format!("{:.0}%", percent);
 
     view! {
         <div class="labeled-progress-bar">
@@ -348,8 +347,9 @@ fn App() -> impl IntoView {
                     width: 100%;
                     overflow: hidden;
                     background-color: var(--background-color);
-                    font-size: xx-large;
+                    font-size: x-large;
                     font-family: "Noto Sans", sans-serif;
+                    font-weight: 400;
                 }
 
                 #app {
@@ -369,7 +369,7 @@ fn App() -> impl IntoView {
                 }
 
                 .widget-title {
-                    font-weight: bold;
+                    font-weight: 500;
                 }
 
                 .widget-main-content {
@@ -379,6 +379,10 @@ fn App() -> impl IntoView {
                     width: 100%;
                     height: auto;
 
+                }
+
+                .widget-description {
+                    font-size: large;
                 }
 
                 .widget-title,
@@ -393,6 +397,7 @@ fn App() -> impl IntoView {
                     top: 0; 
                     z-index: 1;
                     font-family: 'Code New Roman', monospace;
+                    font-size: xxx-large;
                 }
 
                 #title-widget .widget-content {
@@ -403,6 +408,12 @@ fn App() -> impl IntoView {
                     justify-content: flex-end; 
                     background-color: transparent;
                     cursor: default;
+                }
+
+                .header-title {
+                    color: var(--widget-background);
+                    font-weight: 700;
+                    font-size: xx-large;
                 }
                 
                 .labeled-progress-bar {
@@ -420,7 +431,7 @@ fn App() -> impl IntoView {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-weight: bold;
+                    font-weight: 600;
                 }
 
                 .progress-container {
@@ -437,7 +448,7 @@ fn App() -> impl IntoView {
                     padding: 2%;
                     box-sizing: border-box;
                     border-radius: var(--border-radius);
-                    background-color: var(--background-color);
+                    background-color: var(--text-color);
                     overflow: hidden;
                     position: relative;
                 }
