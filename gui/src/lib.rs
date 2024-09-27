@@ -457,7 +457,7 @@ fn App() -> impl IntoView {
                     width: calc(100% - 4%);
                     height: 100%;
                     background-color: var(--progress-color);
-                    border-radius: calc(var(--border-radius) - 1%);
+                    border-radius: var(--border-radius);
                     box-sizing: border-box;
                     margin-left: 0;
                 }
@@ -503,8 +503,6 @@ fn App() -> impl IntoView {
                     width: 100%;
                     height: 66.66vh;
                     background-color: var(--widget-background);
-                    border-top-left-radius: var(--border-radius);
-                    border-top-right-radius: var(--border-radius);
                     overflow-y: auto;
                     overflow-x: hidden;
                 }
