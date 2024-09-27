@@ -320,8 +320,8 @@ fn App() -> impl IntoView {
                     --background-color: #7f7f7f; 
                     --widget-background: black;
                     --text-color: white;
-                    --accent-color: #007fff;
-                    --progress-color: var(--accent-color);
+                    --accent-color: #7fbfff;
+                    --progress-color: #5f8fbf;
                     --faded-background: rgba(255, 255, 255, 0.15);
                     --border-radius: 10vw;
                     --drop-shadow: 0px 0px 0.5vw rgba(255, 255, 255, 0.5);
@@ -349,7 +349,7 @@ fn App() -> impl IntoView {
                     background-color: var(--background-color);
                     font-size: x-large;
                     font-family: "Noto Sans", sans-serif;
-                    font-weight: 400;
+                    font-weight: 300;
                 }
 
                 #app {
