@@ -445,7 +445,7 @@ fn App() -> impl IntoView {
                 .progress-bar {
                     width: 100%;
                     height: 100%;
-                    padding: 2%;
+                    padding: 1%;
                     box-sizing: border-box;
                     border-radius: var(--border-radius);
                     background-color: var(--text-color);
