@@ -1,39 +1,140 @@
 //  This Source Code Form is subject to the terms of the Mozilla Public
 //  License, v. 2.0. If a copy of the MPL was not distributed with this
 //  file, You can obtain one at https://mozilla.org/MPL/2.0/.
-//
-//  Copyright 2024 — by The Lindemans, LLC
-//
+
 use leptos::*;
 use wasm_bindgen::prelude::*;
-use web_sys::{window, HtmlLinkElement, HtmlMetaElement};
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{window, IdbDatabase, IdbFactory, IdbOpenDbRequest, IdbRequest, IdbTransactionMode, HtmlInputElement, HtmlLinkElement, HtmlMetaElement, js_sys};
+use js_sys::{Promise, Date, Array};
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
+use serde::{Serialize, Deserialize};
+use serde_wasm_bindgen;
+use gloo_console as console;
 
-#[wasm_bindgen(start)]
-pub fn main() {
-    console_error_panic_hook::set_once();
-    setup_document();
-    leptos::mount_to_body(|| view! { <App /> });
+// Database Structures and Implementation
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct WidgetEntry {
+    widget_id: String,
+    timestamp: String,
+    content: String,
 }
 
-fn setup_document() {
-    let document = window().unwrap().document().unwrap();
-
-    document.set_title("welliuᴍ");
-
-    let link: HtmlLinkElement = document.create_element("link").unwrap().dyn_into().unwrap();
-    link.set_rel("icon");
-    link.set_href("./favicon.ico");
-    link.set_type("image/x-icon");
-    document.head().unwrap().append_child(&link).unwrap();
-
-    let meta: HtmlMetaElement = document.create_element("meta").unwrap().dyn_into().unwrap();
-    meta.set_name("viewport");
-    meta.set_content("width=device-width, initial-scale=1.0, user-scalable=no");
-    document.head().unwrap().append_child(&meta).unwrap();
+#[derive(Clone)]
+struct DbConnection {
+    db: IdbDatabase,
 }
 
+impl DbConnection {
+    async fn new() -> Result<Self, JsValue> {
+        let window = web_sys::window().unwrap();
+        let idb: IdbFactory = window.indexed_db()?.unwrap();
+        
+        // Create a Promise that will resolve with our database
+        let db_promise = Promise::new(&mut |resolve, reject| {
+            let open_request: IdbOpenDbRequest = idb.open_with_u32("widget_storage", 1)
+                .expect("Failed to create open request");
+
+            // Keep closures alive for the duration of the request
+            let success_closure = Closure::wrap(Box::new(move |event: web_sys::Event| {
+                let target = event.target().expect("Event should have target");
+                let req: IdbRequest = target.dyn_into().expect("Target should be IDBRequest");
+                let result = req.result().expect("Request should have result");
+                let db: IdbDatabase = result.dyn_into().expect("Result should be IDBDatabase");
+                resolve.call1(&JsValue::NULL, &db).expect("Failed to resolve promise");
+            }) as Box<dyn FnMut(web_sys::Event)>);
+
+            let error_closure = Closure::wrap(Box::new(move |event: web_sys::Event| {
+                reject.call1(&JsValue::NULL, &event).expect("Failed to reject promise");
+            }) as Box<dyn FnMut(web_sys::Event)>);
+
+            let upgrade_closure = Closure::wrap(Box::new(move |event: web_sys::Event| {
+                let target = event.target().expect("Event should have target");
+                let req: IdbRequest = target.dyn_into().expect("Target should be IDBRequest");
+                let result = req.result().expect("Request should have result");
+                let db: IdbDatabase = result.dyn_into().expect("Result should be IDBDatabase");
+                
+                match db.create_object_store("widget_entries") {
+                    Ok(_) => (),
+                    Err(e) => {
+                        console::error!("Failed to create object store:", e);
+                    }
+                }
+            }) as Box<dyn FnMut(web_sys::Event)>);
+
+            // Set the event handlers
+            open_request.set_onsuccess(Some(success_closure.as_ref().unchecked_ref()));
+            open_request.set_onerror(Some(error_closure.as_ref().unchecked_ref()));
+            open_request.set_onupgradeneeded(Some(upgrade_closure.as_ref().unchecked_ref()));
+
+            // Leak the closures so they stay alive
+            success_closure.forget();
+            error_closure.forget();
+            upgrade_closure.forget();
+        });
+
+        // Wait for the database to be ready
+        let db = JsFuture::from(db_promise).await?;
+        let db: IdbDatabase = db.dyn_into()?;
+        
+        Ok(DbConnection { db })
+    }
+    
+    async fn add_entry(&self, widget_id: &str, content: &str) -> Result<WidgetEntry, JsValue> {
+        let store_name = "widget_entries";
+        let transaction = self.db.transaction_with_str_sequence_and_mode(
+            &Array::of1(&JsValue::from_str(store_name)),
+            IdbTransactionMode::Readwrite,
+        )?;
+        
+        let store = transaction.object_store(store_name)?;
+        
+        let entry = WidgetEntry {
+            widget_id: widget_id.to_string(),
+            timestamp: Date::new_0().to_iso_string().as_string().unwrap(),
+            content: content.to_string(),
+        };
+        
+        let entry_js = serde_wasm_bindgen::to_value(&entry)?;
+        let request = store.put(&entry_js)?;
+        let promise: Promise = request.dyn_into()?;
+        JsFuture::from(promise).await?;
+        
+        Ok(entry)
+    }
+    
+    async fn get_entries(&self, widget_id: &str) -> Result<Vec<WidgetEntry>, JsValue> {
+        let store_name = "widget_entries";
+        let transaction = self.db.transaction_with_str_sequence(
+            &Array::of1(&JsValue::from_str(store_name))
+        )?;
+        
+        let store = transaction.object_store(store_name)?;
+        let request = store.get_all()?;
+        let promise: Promise = request.dyn_into()?;
+        let result = JsFuture::from(promise).await?;
+        
+        let entries: Vec<WidgetEntry> = result
+            .dyn_into::<js_sys::Array>()?
+            .iter()
+            .filter_map(|entry| {
+                serde_wasm_bindgen::from_value(entry).ok()
+                    .and_then(|entry: WidgetEntry| {
+                        if entry.widget_id == widget_id {
+                            Some(entry)
+                        } else {
+                            None
+                        }
+                    })
+            })
+            .collect();
+        
+        Ok(entries)
+    }
+}
+
+// Widget Components and Implementation
 #[derive(Clone)]
 struct Widget {
     name: &'static str,
@@ -58,6 +159,58 @@ impl Widget {
             is_header,
             content,
         }
+    }
+}
+
+#[component]
+fn InputBlock(
+    widget_id: &'static str,
+    placeholder: &'static str,
+) -> impl IntoView {
+    let (input_value, set_input_value) = create_signal(String::new());
+    let (history, set_history) = create_signal(Vec::<String>::new());
+    
+    // Add back the handle_input function
+    let handle_input = move |ev| {
+        let input = event_target::<HtmlInputElement>(&ev);
+        set_input_value.set(input.value());
+    };
+    
+    let handle_submit = move |ev: web_sys::SubmitEvent| {
+        ev.prevent_default();
+        let current_value = input_value.get();
+        if !current_value.is_empty() {
+            set_history.update(|h| {
+                h.insert(0, current_value.clone());
+            });
+            set_input_value.set(String::new());
+        }
+    };
+
+    view! {
+        <div class="input-block">
+            <form on:submit=handle_submit>
+                <input
+                    type="text"
+                    value=input_value
+                    on:input=handle_input
+                    placeholder=placeholder
+                    class="w-full p-2 rounded border"
+                />
+            </form>
+            <div class="history-display">
+                <Show
+                    when=move || !history.get().is_empty()
+                    fallback=|| view! { <p>"No entries yet"</p> }
+                >
+                    {move || history.get().iter().map(|entry| {
+                        view! {
+                            <p>{entry}</p>
+                        }
+                    }).collect::<Vec<_>>()}
+                </Show>
+            </div>
+        </div>
     }
 }
 
@@ -104,17 +257,63 @@ fn TextBlock(text: &'static str) -> impl IntoView {
     }
 }
 
+#[wasm_bindgen(start)]
+pub fn main() {
+    console_error_panic_hook::set_once();
+    setup_document();
+    
+    spawn_local(async {
+        match DbConnection::new().await {
+            Ok(db) => {
+                leptos::mount_to_body(move || view! {
+                    <Provider value=db>
+                        <App />
+                    </Provider>
+                });
+            }
+            Err(e) => {
+                // More detailed error logging
+                console::error!("Failed to initialize database");
+                console::error!("Error details:", e);
+                
+                // Mount a basic error message for the user
+                leptos::mount_to_body(|| view! {
+                    <div style="padding: 20px; color: red;">
+                        "Failed to initialize application. Please refresh the page or contact support."
+                    </div>
+                });
+            }
+        }
+    });
+}
+
+fn setup_document() {
+    let document = window().unwrap().document().unwrap();
+    document.set_title("welliuᴍ");
+    
+    let link: HtmlLinkElement = document.create_element("link").unwrap().dyn_into().unwrap();
+    link.set_rel("icon");
+    link.set_href("./favicon.ico");
+    link.set_type("image/x-icon");
+    document.head().unwrap().append_child(&link).unwrap();
+    
+    let meta: HtmlMetaElement = document.create_element("meta").unwrap().dyn_into().unwrap();
+    meta.set_name("viewport");
+    meta.set_content("width=device-width, initial-scale=1.0, user-scalable=no");
+    document.head().unwrap().append_child(&meta).unwrap();
+}
+
 #[component]
 fn App() -> impl IntoView {
     let (window_size, set_window_size) = create_signal((0.0, 0.0));
-
+    
     let update_window_size = move || {
         let window = leptos::window();
         let width = window.inner_width().unwrap().as_f64().unwrap();
         let height = window.inner_height().unwrap().as_f64().unwrap();
         set_window_size.set((width, height));
     };
-
+    
     let window = leptos::window();
     let closure = Closure::wrap(Box::new(move || {
         update_window_size();
@@ -123,7 +322,7 @@ fn App() -> impl IntoView {
         .add_event_listener_with_callback("resize", closure.as_ref().unchecked_ref())
         .unwrap();
     closure.forget();
-
+    
     update_window_size();
 
     let widgets = vec![
@@ -155,7 +354,6 @@ fn App() -> impl IntoView {
             true,
             Rc::new(|| view! { <TextBlock text="" /> }),
         ),
-        // Updated Widgets: Replaced ProgressBar with LabeledProgressBar
         Widget::new(
             "Widget 4",
             "This is the description for Widget 4.",
@@ -179,10 +377,13 @@ fn App() -> impl IntoView {
         ),
         Widget::new(
             "Widget 7",
-            "This is the description for Widget 7.",
+            "This is the query for Widget 7.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <TextBlock text="Sample content for Widget 7." /> }),
+            Rc::new(|| view! { <InputBlock 
+                widget_id="widget-7"
+                placeholder="Type something..."
+            /> }),
         ),
         Widget::new(
             "Widget 8",
@@ -207,10 +408,13 @@ fn App() -> impl IntoView {
         ),
         Widget::new(
             "Widget 11",
-            "This is the description for Widget 11.",
+            "This is the query for Widget 11.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <TextBlock text="Sample content for Widget 11." /> }),
+            Rc::new(|| view! { <InputBlock 
+                widget_id="widget-11"
+                placeholder="Type something..."
+            /> }),
         ),
         Widget::new(
             "Widget 12",
@@ -235,10 +439,13 @@ fn App() -> impl IntoView {
         ),
         Widget::new(
             "Widget 15",
-            "This is the description for Widget 15.",
+            "This is the query for Widget 15.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <TextBlock text="Sample content for Widget 15." /> }),
+            Rc::new(|| view! { <InputBlock 
+                widget_id="widget-15"
+                placeholder="Type something..."
+            /> }),
         ),
         Widget::new(
             "Widget 16",
@@ -263,10 +470,13 @@ fn App() -> impl IntoView {
         ),
         Widget::new(
             "Widget 19",
-            "This is the description for Widget 19.",
+            "This is the query for Widget 19.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <TextBlock text="Sample content for Widget 19." /> }),
+            Rc::new(|| view! { <InputBlock 
+                widget_id="widget-19"
+                placeholder="Type something..."
+            /> }),
         ),
         Widget::new(
             "Widget 20",
@@ -291,10 +501,13 @@ fn App() -> impl IntoView {
         ),
         Widget::new(
             "Widget 23",
-            "This is the description for Widget 23.",
+            "This is the query for Widget 23.",
             1.0 / 3.0,
             false,
-            Rc::new(|| view! { <TextBlock text="Sample content for Widget 23." /> }),
+            Rc::new(|| view! { <InputBlock 
+                widget_id="widget-23"
+                placeholder="Type something..."
+            /> }),
         ),
         Widget::new(
             "Widget 24",
@@ -304,222 +517,221 @@ fn App() -> impl IntoView {
             Rc::new(|| view! { <LabeledProgressBar numerator=100 denominator=100 /> }),
         ),
     ];
-
+    
     let total_widgets = widgets.len();
-
     let selected_widget = create_rw_signal::<Option<Widget>>(None);
-
+    
     view! {
         <>
-            <style>
-                {r#"
-                @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
-                @import url('https://fonts.cdnfonts.com/css/code-new-roman');
+        <style>
+            {r#"
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+            @import url('https://fonts.cdnfonts.com/css/code-new-roman');
 
-                :root {
-                    --background-color: #7f7f7f; 
-                    --widget-background: black;
-                    --text-color: white;
-                    --accent-color: #7fbfff;
-                    --progress-color: #5f8fbf;
-                    --faded-background: rgba(255, 255, 255, 0.15);
-                    --border-radius: 10vw;
-                    --drop-shadow: 0px 0px 0.5vw rgba(255, 255, 255, 0.5);
-                }
+            :root {
+                --background-color: #7f7f7f; 
+                --widget-background: black;
+                --text-color: white;
+                --accent-color: #7fbfff;
+                --progress-color: #5f8fbf;
+                --faded-background: rgba(255, 255, 255, 0.15);
+                --border-radius: 10vw;
+                --drop-shadow: 0px 0px 0.5vw rgba(255, 255, 255, 0.5);
+            }
 
-                * {
-                    -webkit-overflow-scrolling: touch;
-                    -ms-overflow-style: none;
-                    scrollbar-width: none;
-                    justify-content: center;
-                    align-items: center;
-                    text-align: center;
-                    color: var(--text-color);
-                }
+            * {
+                -webkit-overflow-scrolling: touch;
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+                color: var(--text-color);
+            }
 
-                *-webkit-scrollbar {
-                    display: none;
-                }
+            *-webkit-scrollbar {
+                display: none;
+            }
 
-                html, body {
-                    margin: 0;
-                    height: 100%;
-                    width: 100%;
-                    overflow: hidden;
-                    background-color: var(--background-color);
-                    font-size: x-large;
-                    font-family: "Noto Sans", sans-serif;
-                    font-weight: 300;
-                }
+            html, body {
+                margin: 0;
+                height: 100%;
+                width: 100%;
+                overflow: hidden;
+                background-color: var(--background-color);
+                font-size: x-large;
+                font-family: "Noto Sans", sans-serif;
+                font-weight: 300;
+            }
 
-                #app {
-                    height: 100%;
-                    overflow: hidden;
-                    align-items: flex-start;
-                    justify-content: flex-start; 
-                }
+            #app {
+                height: 100%;
+                overflow: hidden;
+                align-items: flex-start;
+                justify-content: flex-start; 
+            }
 
-                .widget-content {
-                    background-color: black;
-                    display: flex;
-                    flex-direction: column;
-                    width: 100%;
-                    height: 100%;
-                    cursor: pointer;
-                }
+            .widget-content {
+                background-color: black;
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                height: 100%;
+                cursor: pointer;
+            }
 
-                .widget-title {
-                    font-weight: 500;
-                }
+            .widget-title {
+                font-weight: 500;
+            }
 
-                .widget-main-content {
-                    flex: 2;
-                    display: flex;
-                    align-items: center;
-                    width: 100%;
-                    height: auto;
+            .widget-main-content {
+                flex: 2;
+                display: flex;
+                align-items: center;
+                width: 100%;
+                height: auto;
 
-                }
+            }
 
-                .widget-description {
-                    font-size: large;
-                }
+            .widget-description {
+                font-size: large;
+            }
 
-                .widget-title,
-                .widget-description {
-                    flex: 1;
-                    display: flex;
-                }
+            .widget-title,
+            .widget-description {
+                flex: 1;
+                display: flex;
+            }
 
-                #title-widget {
-                    display: block;
-                    position: sticky; 
-                    top: 0; 
-                    z-index: 1;
-                    font-family: 'Code New Roman', monospace;
-                    font-size: xxx-large;
-                }
+            #title-widget {
+                display: block;
+                position: sticky; 
+                top: 0; 
+                z-index: 1;
+                font-family: 'Code New Roman', monospace;
+                font-size: xxx-large;
+            }
 
-                #title-widget .widget-content {
-                    cursor: default;                
-                }
+            #title-widget .widget-content {
+                cursor: default;                
+            }
 
-                .header-widget {
-                    justify-content: flex-end; 
-                    background-color: transparent;
-                    cursor: default;
-                }
+            .header-widget {
+                justify-content: flex-end; 
+                background-color: transparent;
+                cursor: default;
+            }
 
-                .header-title {
-                    color: var(--widget-background);
-                    font-weight: 700;
-                    font-size: xx-large;
-                }
-                
-                .labeled-progress-bar {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    width: 75%;
-                    margin: 0 auto;
-                    height: 100%;
-                    font-size: medium;
-                }
+            .header-title {
+                color: var(--widget-background);
+                font-weight: 700;
+                font-size: xx-large;
+            }
+            
+            .labeled-progress-bar {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                width: 75%;
+                margin: 0 auto;
+                height: 100%;
+                font-size: medium;
+            }
 
-                .percentage-label {
-                    flex: 0 0 25%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: 600;
-                }
+            .percentage-label {
+                flex: 0 0 25%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+            }
 
-                .progress-container {
-                    flex: 0 0 50%;
-                    width: 100%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
+            .progress-container {
+                flex: 0 0 50%;
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
 
-                .progress-bar {
-                    width: 100%;
-                    height: 100%;
-                    padding: 1%;
-                    box-sizing: border-box;
-                    border-radius: var(--border-radius);
-                    background-color: var(--text-color);
-                    overflow: hidden;
-                    position: relative;
-                }
+            .progress-bar {
+                width: 100%;
+                height: 100%;
+                padding: 1%;
+                box-sizing: border-box;
+                border-radius: var(--border-radius);
+                background-color: var(--text-color);
+                overflow: hidden;
+                position: relative;
+            }
 
-                .progress {
-                    width: calc(100% - 4%);
-                    height: 100%;
-                    background-color: var(--progress-color);
-                    border-radius: var(--border-radius);
-                    box-sizing: border-box;
-                    margin-left: 0;
-                }
+            .progress {
+                width: calc(100% - 4%);
+                height: 100%;
+                background-color: var(--progress-color);
+                border-radius: var(--border-radius);
+                box-sizing: border-box;
+                margin-left: 0;
+            }
 
-                .labels {
-                    flex: 0 0 25%;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    width: 100%;
-                }
+            .labels {
+                flex: 0 0 25%;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+            }
 
-                .label-left,
-                .label-center,
-                .label-right {
-                    width: 33%;
-                }
+            .label-left,
+            .label-center,
+            .label-right {
+                width: 33%;
+            }
 
-                .label-left {
-                    text-align: left;
-                }
+            .label-left {
+                text-align: left;
+            }
 
-                .label-right {
-                    text-align: right;
-                }
+            .label-right {
+                text-align: right;
+            }
 
 
-                .modal-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: var(--faded-background);
-                    z-index: 1000;
-                    overflow-y: hidden;
-                }
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: var(--faded-background);
+                z-index: 1000;
+                overflow-y: hidden;
+            }
 
-                .modal-content {
-                    position: fixed;
-                    bottom: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 66.66vh;
-                    background-color: var(--widget-background);
-                    overflow-y: auto;
-                    overflow-x: hidden;
-                }
+            .modal-content {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: 66.66vh;
+                background-color: var(--widget-background);
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
 
-                .modal-main-content {
-                    height:25%;
-                }
+            .modal-main-content {
+                height:25%;
+            }
 
-                .modal-history p {
-                    text-align: left;
-                    border-top: 1px solid var(--background-color);
-                    padding: 0 1vw;
-                }
+            .modal-history p {
+                text-align: left;
+                border-top: 1px solid var(--background-color);
+                padding: 0 1vw;
+            }
 
-                "#}
-            </style>
-
+            "#}
+        </style>
+            
             <div
                 id="app"
                 style=move || {
@@ -568,10 +780,9 @@ fn App() -> impl IntoView {
                     }
                 }
             </Show>
-            </>
+        </>
     }
 }
-
 #[component]
 fn WidgetComponent(
     widget: Widget,
@@ -607,7 +818,7 @@ fn WidgetComponent(
                     let widget_height = widget_width * widget_aspect_ratio;
                     base_style = format!("width: 100%; height: {}px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", widget_height);
                 }
-                
+
                 base_style
             }
         >
