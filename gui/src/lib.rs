@@ -1,6 +1,8 @@
 //  This Source Code Form is subject to the terms of the Mozilla Public
 //  License, v. 2.0. If a copy of the MPL was not distributed with this
 //  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+// 
+//  Copyright 2024 — by The Lindemans, LLC
 
 use leptos::*;
 use wasm_bindgen::prelude::*;
@@ -13,7 +15,6 @@ use serde::{Serialize, Deserialize};
 use serde_wasm_bindgen;
 use gloo_console as console;
 
-// Database Structures and Implementation
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct WidgetEntry {
     widget_id: String,
@@ -134,7 +135,6 @@ impl DbConnection {
     }
 }
 
-// Widget Components and Implementation
 #[derive(Clone)]
 struct Widget {
     name: &'static str,
