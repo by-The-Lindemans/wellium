@@ -167,10 +167,23 @@ fn InputBlock(
     widget_id: &'static str,
     placeholder: &'static str,
 ) -> impl IntoView {
-    let (input_value, set_input_value) = create_signal(String::new());
-    let (history, set_history) = create_signal(Vec::<String>::new());
+    let db = expect_context::<DbConnection>();
+    let db_effect = db.clone();  // Clone for effect closure
+    let db_submit = db.clone();  // Clone for submit handler
     
-    // Add back the handle_input function
+    let (input_value, set_input_value) = create_signal(String::new());
+    let (history, set_history) = create_signal(Vec::<WidgetEntry>::new());
+    
+    // Load initial history
+    create_effect(move |_| {
+        let db = db_effect.clone();  // Clone again before moving into async block
+        spawn_local(async move {
+            if let Ok(entries) = db.get_entries(widget_id).await {
+                set_history.set(entries);
+            }
+        });
+    });
+    
     let handle_input = move |ev| {
         let input = event_target::<HtmlInputElement>(&ev);
         set_input_value.set(input.value());
@@ -180,8 +193,16 @@ fn InputBlock(
         ev.prevent_default();
         let current_value = input_value.get();
         if !current_value.is_empty() {
-            set_history.update(|h| {
-                h.insert(0, current_value.clone());
+            let db = db_submit.clone();  // Clone for async block
+            let widget_id = widget_id.to_string();
+            spawn_local(async move {
+                if let Ok(entry) = db.add_entry(&widget_id, &current_value).await {
+                    set_history.update(|h| {
+                        let mut new_history = vec![entry];
+                        new_history.extend(h.iter().cloned());
+                        *h = new_history;
+                    });
+                }
             });
             set_input_value.set(String::new());
         }
@@ -195,7 +216,6 @@ fn InputBlock(
                     value=input_value
                     on:input=handle_input
                     placeholder=placeholder
-                    class="w-full p-2 rounded border"
                 />
             </form>
             <div class="history-display">
@@ -205,7 +225,7 @@ fn InputBlock(
                 >
                     {move || history.get().iter().map(|entry| {
                         view! {
-                            <p>{entry}</p>
+                            <p>{&entry.content}</p>
                         }
                     }).collect::<Vec<_>>()}
                 </Show>
@@ -722,13 +742,64 @@ fn App() -> impl IntoView {
             .modal-main-content {
                 height:25%;
             }
-
-            .modal-history p {
-                text-align: left;
-                border-top: 1px solid var(--background-color);
-                padding: 0 1vw;
+                
+            .input-block {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                padding: 1vw;
+                box-sizing: border-box;
             }
 
+            .input-block form {
+                width: 100%;
+                margin-bottom: 1vw;
+            }
+
+            .input-block input {
+                width: 100%;
+                padding: 1vw;
+                border: none;
+                border-radius: var(--border-radius);
+                background-color: var(--faded-background);
+                color: var(--text-color);
+                font-family: "Noto Sans", sans-serif;
+                font-size: large;
+                box-sizing: border-box;
+            }
+
+            .input-block input:focus {
+                outline: none;
+                box-shadow: var(--drop-shadow);
+            }
+
+            .input-block input::placeholder {
+                color: var(--text-color);
+                opacity: 0.5;
+            }
+
+            .history-display {
+                flex: 1;
+                overflow-y: auto;
+                width: 100%;
+            }
+
+            .history-display p {
+                margin: 0.5vw 0;
+                padding: 1vw;
+                background-color: var(--faded-background);
+                border-radius: var(--border-radius);
+                text-align: left;
+            }
+
+            .modal-history p {
+                margin: 1vw;
+                padding: 1vw;
+                background-color: var(--faded-background);
+                border-radius: var(--border-radius);
+                border-top: none;
+            }
             "#}
         </style>
             
@@ -837,11 +908,24 @@ fn WidgetComponent(
 
 #[component]
 fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoView {
-    use std::rc::Rc;
-
-    let on_close_rc = Rc::new(on_close);
+    let db = expect_context::<DbConnection>();
+    let db_effect = db.clone();  // Clone for effect closure
+    let widget_id = format!("widget-{}", widget.name.to_lowercase().replace(" ", "-"));
+    let (history, set_history) = create_signal(Vec::<WidgetEntry>::new());
+    
+    // Load historical data from database
+    create_effect(move |_| {
+        let db = db_effect.clone();  // Clone again before moving into async block
+        let widget_id = widget_id.clone();
+        spawn_local(async move {
+            if let Ok(entries) = db.get_entries(&widget_id).await {
+                set_history.set(entries);
+            }
+        });
+    });
 
     let modal_content_ref = create_node_ref::<html::Div>();
+    let on_close_rc = Rc::new(on_close);
 
     let on_close_click = {
         let on_close_rc = on_close_rc.clone();
@@ -865,12 +949,6 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
         }
     };
 
-    let historical_data = (0..30)
-        .map(|i| {
-            view! { <p>{format!("Historical data entry {}", i + 1)}</p> }
-        })
-        .collect::<Vec<_>>();
-
     view! {
         <div
             class="modal-overlay"
@@ -889,7 +967,16 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
                     { (widget.content)() }
                 </div>
                 <div class="modal-history">
-                    { historical_data }
+                    <Show
+                        when=move || !history.get().is_empty()
+                        fallback=|| view! { <p>"No historical data"</p> }
+                    >
+                        {move || history.get().iter().map(|entry| {
+                            view! {
+                                <p>{&entry.content}</p>
+                            }
+                        }).collect::<Vec<_>>()}
+                    </Show>
                 </div>
             </div>
         </div>
