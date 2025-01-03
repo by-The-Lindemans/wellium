@@ -160,26 +160,46 @@ impl Widget {
             content,
         }
     }
+
+    fn widget_id(&self) -> String {
+        if self.name.is_empty() {
+            "widget-title".to_string()
+        } else {
+            format!("widget-{}", self.name.to_lowercase().replace(" ", "-"))
+        }
+    }
 }
 
 #[component]
 fn InputBlock(
-    widget_id: &'static str,
     placeholder: &'static str,
 ) -> impl IntoView {
+    let widget = expect_context::<Widget>();
+    let widget_id = widget.widget_id();
     let db = expect_context::<DbConnection>();
-    let db_effect = db.clone();  // Clone for effect closure
-    let db_submit = db.clone();  // Clone for submit handler
+    let db_effect = db.clone();
+    let db_submit = db.clone();
     
     let (input_value, set_input_value) = create_signal(String::new());
     let (history, set_history) = create_signal(Vec::<WidgetEntry>::new());
+    let (latest_entry, set_latest_entry) = create_signal(String::new());
     
-    // Load initial history
+    // Load initial history and set latest entry
+    let widget_id_clone = widget_id.clone();
     create_effect(move |_| {
-        let db = db_effect.clone();  // Clone again before moving into async block
+        let db = db_effect.clone();
+        let widget_id = widget_id_clone.clone();
         spawn_local(async move {
-            if let Ok(entries) = db.get_entries(widget_id).await {
-                set_history.set(entries);
+            match db.get_entries(&widget_id).await {
+                Ok(entries) => {
+                    set_history.set(entries.clone());
+                    if let Some(latest) = entries.first() {
+                        set_latest_entry.set(latest.content.clone());
+                    }
+                }
+                Err(e) => {
+                    console::error!("Failed to load entries:", e);
+                }
             }
         });
     });
@@ -189,19 +209,27 @@ fn InputBlock(
         set_input_value.set(input.value());
     };
     
+    let widget_id_submit = widget_id.clone();
     let handle_submit = move |ev: web_sys::SubmitEvent| {
         ev.prevent_default();
         let current_value = input_value.get();
         if !current_value.is_empty() {
-            let db = db_submit.clone();  // Clone for async block
-            let widget_id = widget_id.to_string();
+            let db = db_submit.clone();
+            let widget_id = widget_id_submit.clone();
+            let value = current_value.clone();
             spawn_local(async move {
-                if let Ok(entry) = db.add_entry(&widget_id, &current_value).await {
-                    set_history.update(|h| {
-                        let mut new_history = vec![entry];
-                        new_history.extend(h.iter().cloned());
-                        *h = new_history;
-                    });
+                match db.add_entry(&widget_id, &value).await {
+                    Ok(entry) => {
+                        set_history.update(|h| {
+                            let mut new_history = vec![entry.clone()];
+                            new_history.extend(h.iter().cloned());
+                            *h = new_history;
+                        });
+                        set_latest_entry.set(value);
+                    }
+                    Err(e) => {
+                        console::error!("Failed to add entry:", e);
+                    }
                 }
             });
             set_input_value.set(String::new());
@@ -220,14 +248,10 @@ fn InputBlock(
             </form>
             <div class="history-display">
                 <Show
-                    when=move || !history.get().is_empty()
+                    when=move || !latest_entry.get().is_empty()
                     fallback=|| view! { <p>"No entries yet"</p> }
                 >
-                    {move || history.get().iter().map(|entry| {
-                        view! {
-                            <p>{&entry.content}</p>
-                        }
-                    }).collect::<Vec<_>>()}
+                    <p>{move || latest_entry.get()}</p>
                 </Show>
             </div>
         </div>
@@ -268,7 +292,6 @@ fn LabeledProgressBar(numerator: u32, denominator: u32) -> impl IntoView {
         </div>
     }
 }
-
 
 #[component]
 fn TextBlock(text: &'static str) -> impl IntoView {
@@ -346,197 +369,192 @@ fn App() -> impl IntoView {
     update_window_size();
 
     let widgets = vec![
-        Widget::new(
-            "",
-            "",
-            0.5 / 3.0,
-            false,
-            Rc::new(|| view! { <TextBlock text="welliuᴍ" /> }),
-        ),
-        Widget::new(
-            "Widget 2",
-            "This is the description for Widget 2.",
-            1.5 / 3.0,
-            false,
-            Rc::new(|| view! { <TextBlock text="Sample text for Widget 2." /> }),
-        ),
-        Widget::new(
-            "Widget 3",
-            "This is the description for Widget 3.",
-            2.0 / 3.0,
-            false,
-            Rc::new(|| view! { <TextBlock text="Another sample text for Widget 3." /> }),
-        ),
-        Widget::new(
-            "Header 2",
-            "",
-            0.5 / 3.0,
-            true,
-            Rc::new(|| view! { <TextBlock text="" /> }),
-        ),
-        Widget::new(
-            "Widget 4",
-            "This is the description for Widget 4.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <LabeledProgressBar numerator=0 denominator=100 /> }),
-        ),
-        Widget::new(
-            "Widget 5",
-            "This is the description for Widget 5.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <TextBlock text="Text block for Widget 5." /> }),
-        ),
-        Widget::new(
-            "Widget 6",
-            "This is the description for Widget 6.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <LabeledProgressBar numerator=10 denominator=100 /> }),
-        ),
-        Widget::new(
-            "Widget 7",
-            "This is the query for Widget 7.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <InputBlock 
-                widget_id="widget-7"
-                placeholder="Type something..."
-            /> }),
-        ),
-        Widget::new(
-            "Widget 8",
-            "This is the description for Widget 8.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <LabeledProgressBar numerator=20 denominator=100 /> }),
-        ),
-        Widget::new(
-            "Widget 9",
-            "This is the description for Widget 9.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <TextBlock text="Text block for Widget 9." /> }),
-        ),
-        Widget::new(
-            "Widget 10",
-            "This is the description for Widget 10.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <LabeledProgressBar numerator=30 denominator=100 /> }),
-        ),
-        Widget::new(
-            "Widget 11",
-            "This is the query for Widget 11.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <InputBlock 
-                widget_id="widget-11"
-                placeholder="Type something..."
-            /> }),
-        ),
-        Widget::new(
-            "Widget 12",
-            "This is the description for Widget 12.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <LabeledProgressBar numerator=40 denominator=100 /> }),
-        ),
-        Widget::new(
-            "Widget 13",
-            "This is the description for Widget 13.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <TextBlock text="Text block for Widget 13." /> }),
-        ),
-        Widget::new(
-            "Widget 14",
-            "This is the description for Widget 14.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <LabeledProgressBar numerator=50 denominator=100 /> }),
-        ),
-        Widget::new(
-            "Widget 15",
-            "This is the query for Widget 15.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <InputBlock 
-                widget_id="widget-15"
-                placeholder="Type something..."
-            /> }),
-        ),
-        Widget::new(
-            "Widget 16",
-            "This is the description for Widget 16.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <LabeledProgressBar numerator=60 denominator=100 /> }),
-        ),
-        Widget::new(
-            "Widget 17",
-            "This is the description for Widget 17.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <TextBlock text="Text block for Widget 17." /> }),
-        ),
-        Widget::new(
-            "Widget 18",
-            "This is the description for Widget 18.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <LabeledProgressBar numerator=70 denominator=100 /> }),
-        ),
-        Widget::new(
-            "Widget 19",
-            "This is the query for Widget 19.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <InputBlock 
-                widget_id="widget-19"
-                placeholder="Type something..."
-            /> }),
-        ),
-        Widget::new(
-            "Widget 20",
-            "This is the description for Widget 20.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <LabeledProgressBar numerator=80 denominator=100 /> }),
-        ),
-        Widget::new(
-            "Widget 21",
-            "This is the description for Widget 21.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <TextBlock text="Text block for Widget 21." /> }),
-        ),
-        Widget::new(
-            "Widget 22",
-            "This is the description for Widget 22.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <LabeledProgressBar numerator=90 denominator=100 /> }),
-        ),
-        Widget::new(
-            "Widget 23",
-            "This is the query for Widget 23.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <InputBlock 
-                widget_id="widget-23"
-                placeholder="Type something..."
-            /> }),
-        ),
-        Widget::new(
-            "Widget 24",
-            "This is the description for Widget 24.",
-            1.0 / 3.0,
-            false,
-            Rc::new(|| view! { <LabeledProgressBar numerator=100 denominator=100 /> }),
-        ),
-    ];
+    Widget::new(
+        "",
+        "",
+        0.5 / 3.0,
+        false,
+        Rc::new(|| view! { <TextBlock text="welliuᴍ" /> }),
+    ),
+    Widget::new(
+        "Widget 2",
+        "This is the description for Widget 2.",
+        1.5 / 3.0,
+        false,
+        Rc::new(|| view! { <TextBlock text="Sample text for Widget 2." /> }),
+    ),
+    Widget::new(
+        "Widget 3",
+        "This is the description for Widget 3.",
+        2.0 / 3.0,
+        false,
+        Rc::new(|| view! { <TextBlock text="Another sample text for Widget 3." /> }),
+    ),
+    Widget::new(
+        "Header 2",
+        "",
+        0.5 / 3.0,
+        true,
+        Rc::new(|| view! { <TextBlock text="" /> }),
+    ),
+    Widget::new(
+        "Widget 4",
+        "This is the description for Widget 4.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <LabeledProgressBar numerator=0 denominator=100 /> }),
+    ),
+    Widget::new(
+        "Widget 5",
+        "This is the description for Widget 5.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <TextBlock text="Text block for Widget 5." /> }),
+    ),
+    Widget::new(
+        "Widget 6",
+        "This is the description for Widget 6.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <LabeledProgressBar numerator=10 denominator=100 /> }),
+    ),
+    Widget::new(
+        "Widget 7",
+        "This is the query for Widget 7.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <InputBlock 
+            placeholder="Type something..."
+        /> }),
+    ),
+    Widget::new(
+        "Widget 8",
+        "This is the description for Widget 8.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <LabeledProgressBar numerator=20 denominator=100 /> }),
+    ),
+    Widget::new(
+        "Widget 9",
+        "This is the description for Widget 9.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <TextBlock text="Text block for Widget 9." /> }),
+    ),
+    Widget::new(
+        "Widget 10",
+        "This is the description for Widget 10.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <LabeledProgressBar numerator=30 denominator=100 /> }),
+    ),
+    Widget::new(
+        "Widget 11",
+        "This is the query for Widget 11.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <InputBlock 
+            placeholder="Type something..."
+        /> }),
+    ),
+    Widget::new(
+        "Widget 12",
+        "This is the description for Widget 12.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <LabeledProgressBar numerator=40 denominator=100 /> }),
+    ),
+    Widget::new(
+        "Widget 13",
+        "This is the description for Widget 13.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <TextBlock text="Text block for Widget 13." /> }),
+    ),
+    Widget::new(
+        "Widget 14",
+        "This is the description for Widget 14.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <LabeledProgressBar numerator=50 denominator=100 /> }),
+    ),
+    Widget::new(
+        "Widget 15",
+        "This is the query for Widget 15.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <InputBlock 
+            placeholder="Type something..."
+        /> }),
+    ),
+    Widget::new(
+        "Widget 16",
+        "This is the description for Widget 16.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <LabeledProgressBar numerator=60 denominator=100 /> }),
+    ),
+    Widget::new(
+        "Widget 17",
+        "This is the description for Widget 17.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <TextBlock text="Text block for Widget 17." /> }),
+    ),
+    Widget::new(
+        "Widget 18",
+        "This is the description for Widget 18.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <LabeledProgressBar numerator=70 denominator=100 /> }),
+    ),
+    Widget::new(
+        "Widget 19",
+        "This is the query for Widget 19.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <InputBlock 
+            placeholder="Type something..."
+        /> }),
+    ),
+    Widget::new(
+        "Widget 20",
+        "This is the description for Widget 20.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <LabeledProgressBar numerator=80 denominator=100 /> }),
+    ),
+    Widget::new(
+        "Widget 21",
+        "This is the description for Widget 21.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <TextBlock text="Text block for Widget 21." /> }),
+    ),
+    Widget::new(
+        "Widget 22",
+        "This is the description for Widget 22.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <LabeledProgressBar numerator=90 denominator=100 /> }),
+    ),
+    Widget::new(
+        "Widget 23",
+        "This is the query for Widget 23.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <InputBlock 
+            placeholder="Type something..."
+        /> }),
+    ),
+    Widget::new(
+        "Widget 24",
+        "This is the description for Widget 24.",
+        1.0 / 3.0,
+        false,
+        Rc::new(|| view! { <LabeledProgressBar numerator=100 denominator=100 /> }),
+    ),
+];
     
     let total_widgets = widgets.len();
     let selected_widget = create_rw_signal::<Option<Widget>>(None);
@@ -552,8 +570,8 @@ fn App() -> impl IntoView {
                 --background-color: #7f7f7f; 
                 --widget-background: black;
                 --text-color: white;
-                --accent-color: #7fbfff;
-                --progress-color: #5f8fbf;
+                --accent-color: #3F7FBF;
+                --progress-color: #3F7FBF;
                 --faded-background: rgba(255, 255, 255, 0.15);
                 --border-radius: 10vw;
                 --drop-shadow: 0px 0px 0.5vw rgba(255, 255, 255, 0.5);
@@ -854,6 +872,7 @@ fn App() -> impl IntoView {
         </>
     }
 }
+
 #[component]
 fn WidgetComponent(
     widget: Widget,
@@ -863,14 +882,16 @@ fn WidgetComponent(
     set_selected_widget: RwSignal<Option<Widget>>,
 ) -> impl IntoView {
     let Widget { name, description, widget_aspect_ratio, is_header, content, .. } = widget.clone();
+    let widget_for_click = widget.clone();
+    let widget_for_provider = widget.clone();
 
     view! {
         <div
             key=index
             class="widget"
             on:click=move |_| {
-                if !widget.is_header && index != 0 {
-                    set_selected_widget.set(Some(widget.clone()));
+                if !widget_for_click.is_header && index != 0 {
+                    set_selected_widget.set(Some(widget_for_click.clone()));
                 }
             }
             id=move || if index == 0 { Some("title-widget") } else { None }
@@ -878,30 +899,30 @@ fn WidgetComponent(
                 let (width, height) = window_size.get();
                 let window_aspect_ratio = width / height;
 
-                let base_style;
-
-                if window_aspect_ratio > ((total_widgets as f64).clamp(12.0, 24.0) * -0.0558 + 2.0) {
+                let base_style = if window_aspect_ratio > ((total_widgets as f64).clamp(12.0, 24.0) * -0.0558 + 2.0) {
                     let column_width = height / ((total_widgets as f64).clamp(12.0, 24.0) / 16.0);
                     let widget_height = column_width * widget_aspect_ratio;
-                    base_style = format!("width: {}px; height: {}px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", column_width, widget_height);
+                    format!("width: {}px; height: {}px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", column_width, widget_height)
                 } else {
                     let widget_width = width;
                     let widget_height = widget_width * widget_aspect_ratio;
-                    base_style = format!("width: 100%; height: {}px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", widget_height);
-                }
+                    format!("width: 100%; height: {}px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;", widget_height)
+                };
 
                 base_style
             }
         >
-            <div class={if is_header { "widget-content header-widget" } else { "widget-content" }}>
-                <div class={if is_header { "header-title" } else { "widget-title" }}>{name}</div>
-                <Show when=move || !is_header>
-                    <>
-                        <div class="widget-main-content">{ (content)() }</div>
-                        <div class="widget-description">{description}</div>
-                    </>
-                </Show>
-            </div>
+            <Provider value=widget_for_provider>
+                <div class={if is_header { "widget-content header-widget" } else { "widget-content" }}>
+                    <div class={if is_header { "header-title" } else { "widget-title" }}>{name}</div>
+                    <Show when=move || !is_header>
+                        <>
+                            <div class="widget-main-content">{ (content)() }</div>
+                            <div class="widget-description">{description}</div>
+                        </>
+                    </Show>
+                </div>
+            </Provider>
         </div>
     }
 }
@@ -909,17 +930,21 @@ fn WidgetComponent(
 #[component]
 fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoView {
     let db = expect_context::<DbConnection>();
-    let db_effect = db.clone();  // Clone for effect closure
-    let widget_id = format!("widget-{}", widget.name.to_lowercase().replace(" ", "-"));
+    let db_effect = db.clone();
+    let widget_id = widget.widget_id();
     let (history, set_history) = create_signal(Vec::<WidgetEntry>::new());
     
-    // Load historical data from database
     create_effect(move |_| {
-        let db = db_effect.clone();  // Clone again before moving into async block
+        let db = db_effect.clone();
         let widget_id = widget_id.clone();
         spawn_local(async move {
-            if let Ok(entries) = db.get_entries(&widget_id).await {
-                set_history.set(entries);
+            match db.get_entries(&widget_id).await {
+                Ok(entries) => {
+                    set_history.set(entries);
+                }
+                Err(e) => {
+                    console::error!("Failed to load modal entries:", e);
+                }
             }
         });
     });
@@ -963,9 +988,11 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
                 <div class="modal-header">
                     <h2>{widget.name}</h2>
                 </div>
-                <div class="modal-main-content">
-                    { (widget.content)() }
-                </div>
+                <Provider value=widget.clone()>
+                    <div class="modal-main-content">
+                        { (widget.content)() }
+                    </div>
+                </Provider>
                 <div class="modal-history">
                     <Show
                         when=move || !history.get().is_empty()
@@ -973,7 +1000,10 @@ fn ModalComponent(widget: Widget, on_close: impl Fn() + 'static) -> impl IntoVie
                     >
                         {move || history.get().iter().map(|entry| {
                             view! {
-                                <p>{&entry.content}</p>
+                                <div class="history-entry">
+                                    <p class="entry-content">{&entry.content}</p>
+                                    <p class="entry-timestamp">{&entry.timestamp}</p>
+                                </div>
                             }
                         }).collect::<Vec<_>>()}
                     </Show>
