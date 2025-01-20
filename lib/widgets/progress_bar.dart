@@ -1,25 +1,26 @@
 import 'package:flutter/material.dart';
 
 class ProgressBar extends StatelessWidget {
-  final double progress;
+  final double percent;
 
-  const ProgressBar({super.key, required this.progress});
+  const ProgressBar({Key? key, required this.percent}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final normalized = percent.clamp(0, 100);
     return Container(
-      width: double.infinity,
       height: 10,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: FractionallySizedBox(
-        widthFactor: progress,
+        widthFactor: normalized / 100,
+        alignment: Alignment.centerLeft,
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF3F7FBF),
-            borderRadius: BorderRadius.circular(5),
+            color: Colors.blue,
+            borderRadius: BorderRadius.circular(10),
           ),
         ),
       ),
