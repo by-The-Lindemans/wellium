@@ -11,10 +11,12 @@ void main() async {
   await Hive.initFlutter();
   await DbConnection.instance.init();
 
-  runApp(MyApp()); // Removed `const`
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -39,7 +41,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor:
             const Color(0xFF7F7F7F), // background-color from CSS
       ),
-      home: HomeScreen(), // Removed `const`
+      home: HomeScreen(),
     );
   }
 }

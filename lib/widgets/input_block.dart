@@ -47,62 +47,66 @@ class _InputBlockState extends State<InputBlock> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.black, // Background color for the block
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Constrain the width of the TextField
-          SizedBox(
-            width: double.infinity,
-            // Ensures the TextField respects parent width
-            child: TextField(
+    // Optionally, remove or adjust ConstrainedBox if needed
+    final maxHeight = MediaQuery.of(context).size.height * 0.8;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        color: Colors.black,
+        child: Column(
+          children: [
+            TextField(
               controller: _controller,
+              maxLines: 1,
               decoration: InputDecoration(
                 hintText: widget.placeholder,
                 hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.15),
-                // Faded background style
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10), // Rounded corners
-                  borderSide: BorderSide.none, // No border outline
+                border: const OutlineInputBorder(
+                  borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.all(16), // Internal padding
+                contentPadding: const EdgeInsets.all(16),
               ),
-              style: const TextStyle(color: Colors.white), // Text color
+              style: const TextStyle(color: Colors.white),
               onSubmitted: (_) => _handleSubmit(),
             ),
-          ),
-          const SizedBox(height: 16), // Space between input and history
-          Expanded(
-            child: _history.isEmpty
-                ? const Center(child: Text("No entries yet"))
-                : ListView.builder(
-                    itemCount: _history.length,
-                    itemBuilder: (context, index) {
-                      final entry = _history[index];
-                      return Card(
-                        color: Colors.white.withOpacity(0.15),
-                        // History entry color
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        // Space between entries
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            entry.content,
-                            style: const TextStyle(color: Colors.white),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _history.isEmpty
+                  ? const Center(
+                      child: Text(
+                        "No entries yet",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      physics: const ClampingScrollPhysics(),
+                      itemCount: _history.length,
+                      itemBuilder: (context, index) {
+                        final entry = _history[index];
+                        return Card(
+                          color: Colors.white.withOpacity(0.15),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
                           ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              entry.content,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

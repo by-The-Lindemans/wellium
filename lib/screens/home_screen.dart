@@ -11,7 +11,7 @@ class MyWidgetData {
   final bool isHeader;
   final Widget Function() content;
 
-  MyWidgetData({
+  const MyWidgetData({
     required this.name,
     required this.description,
     required this.aspectRatio,
@@ -29,21 +29,21 @@ class HomeScreen extends StatelessWidget {
       description: "",
       aspectRatio: 0.2,
       isHeader: true,
-      content: () => const TextBlock(text: "welliuᴍ"),
+      content: () => TextBlock(text: "welliuᴍ"),
     ),
     MyWidgetData(
       name: "Widget 2",
       description: "This is the description for Widget 2.",
       aspectRatio: 0.3,
       isHeader: false,
-      content: () => const TextBlock(text: "Sample text for Widget 2."),
+      content: () => TextBlock(text: "Sample text for Widget 2."),
     ),
     MyWidgetData(
       name: "Input Widget 7",
       description: "This is the query for Widget 7.",
       aspectRatio: 0.3,
       isHeader: false,
-      content: () => const InputBlock(
+      content: () => InputBlock(
         widgetId: "widget-7",
         placeholder: "Type something...",
       ),
@@ -53,7 +53,7 @@ class HomeScreen extends StatelessWidget {
       description: "This is the description for Widget 8.",
       aspectRatio: 0.3,
       isHeader: false,
-      content: () => const LabeledProgressBar(numerator: 20, denominator: 100),
+      content: () => LabeledProgressBar(numerator: 20, denominator: 100),
     ),
     // Add more widgets as needed
   ];
@@ -61,60 +61,74 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("welliuᴍ")),
+      appBar: AppBar(
+        title: const Text(
+          'Code New Roman Demo',
+          style: TextStyle(
+            fontFamily: 'CodeNewRoman', // Use Code New Roman for the title
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.black,
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final screenWidth = constraints.maxWidth;
 
-          return SingleChildScrollView(
-            child: Column(
-              children: widgetsData.map((w) {
-                final widgetHeight = screenWidth * w.aspectRatio;
-                return GestureDetector(
-                  onTap: () {
-                    if (!w.isHeader) {
-                      _showWidgetModal(context, w);
-                    }
-                  },
-                  child: Container(
-                    width: screenWidth,
-                    height: widgetHeight,
-                    margin: const EdgeInsets.only(bottom: 8.0),
-                    decoration: BoxDecoration(
-                      color: w.isHeader ? Colors.black26 : Colors.black,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.white.withOpacity(0.5), // drop-shadow
-                          blurRadius: 4,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                      borderRadius: BorderRadius.circular(
-                          screenWidth * 0.1), // approximate 10vw
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          w.name,
-                          style: TextStyle(
-                            fontSize: w.isHeader ? 28 : 18,
-                            color: Colors.white,
-                          ),
-                        ),
-                        if (!w.isHeader) ...[
-                          Expanded(child: w.content()),
-                          Text(
-                            w.description,
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ],
-                    ),
+          return ListView.builder(
+            padding: const EdgeInsets.all(8.0),
+            itemCount: widgetsData.length,
+            itemBuilder: (context, index) {
+              final widgetData = widgetsData[index];
+              final widgetHeight = screenWidth * widgetData.aspectRatio;
+
+              return GestureDetector(
+                onTap: () {
+                  if (!widgetData.isHeader) {
+                    _showWidgetModal(context, widgetData);
+                  }
+                },
+                child: Container(
+                  width: screenWidth,
+                  height: widgetHeight,
+                  margin: const EdgeInsets.only(bottom: 8.0),
+                  decoration: BoxDecoration(
+                    color: widgetData.isHeader ? Colors.black26 : Colors.black,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.5), // drop-shadow
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                    // Removed borderRadius to eliminate rounded corners
+                    borderRadius: BorderRadius.zero,
                   ),
-                );
-              }).toList(),
-            ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        widgetData.name,
+                        style: TextStyle(
+                          fontSize: widgetData.isHeader ? 28 : 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (!widgetData.isHeader) ...[
+                        // Removed Expanded to avoid overflow if needed; adjust as necessary
+                        widgetData.content(),
+                        Text(
+                          widgetData.description,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
