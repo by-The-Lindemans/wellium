@@ -1,47 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
-import 'data/db_connection.dart';
-import 'screens/home_screen.dart';
+import 'data/hive_setup.dart';
+import 'presentation/screens/home_screen.dart';
+import 'presentation/themes/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await HiveSetup.init();
 
-  await Hive.initFlutter();
-  await DbConnection.instance.init();
-
-  runApp(const MyApp());
+  await SentryFlutter.init(
+    (options) {
+      options.dsn =
+          'https://c01d8dbaf6573ab856942e2288bd3f4f@o4508712697724928.ingest.de.sentry.io/4508712713322576';
+      // Set other options as needed
+    },
+    appRunner: () => runApp(const ProviderScope(child: WelliumApp())),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+class WelliumApp extends StatelessWidget {
+  const WelliumApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Code New Roman Demo',
-      theme: ThemeData.dark().copyWith(
-        textTheme: GoogleFonts.notoSansTextTheme(
-          ThemeData.dark().textTheme,
-        ).apply(
-          bodyColor: Colors.white,
-          displayColor: Colors.white,
-        ),
-        appBarTheme: const AppBarTheme(
-          titleTextStyle: TextStyle(
-            fontFamily: 'CodeNewRoman',
-            // Apply Code New Roman for the AppBar title
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        primaryColor: Colors.blue,
-        scaffoldBackgroundColor:
-            const Color(0xFF7F7F7F), // background-color from CSS
+      title: 'Wellium',
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      home: const Scaffold(
+        body: HomeScreen(),
       ),
-      home: HomeScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
