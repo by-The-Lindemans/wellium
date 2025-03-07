@@ -117,8 +117,9 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ),
                       if (!widgetData.isHeader) ...[
-                        // Removed Expanded to avoid overflow if needed; adjust as necessary
-                        widgetData.content(),
+                        Expanded(
+                          child: widgetData.content(),
+                        ),
                         Text(
                           widgetData.description,
                           style: const TextStyle(color: Colors.white),
@@ -126,8 +127,7 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ],
                   ),
-                ),
-              );
+                ),              );
             },
           );
         },
