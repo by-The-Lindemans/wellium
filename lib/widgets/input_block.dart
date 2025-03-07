@@ -6,20 +6,22 @@ import '../models/widget_entry.dart';
 class InputBlock extends StatefulWidget {
   final String widgetId;
   final String placeholder;
+  final int historyLimit;
 
   const InputBlock({
     Key? key,
     required this.widgetId,
     required this.placeholder,
+    this.historyLimit = 2,
   }) : super(key: key);
 
   @override
-  _InputBlockState createState() => _InputBlockState();
+  State<InputBlock> createState() => _InputBlockState();
 }
 
 class _InputBlockState extends State<InputBlock> {
   final TextEditingController _controller = TextEditingController();
-  List<WidgetEntry> _history = [];
+  List<WidgetEntry> _entries = [];
 
   @override
   void initState() {
@@ -30,7 +32,7 @@ class _InputBlockState extends State<InputBlock> {
   Future<void> _loadHistory() async {
     final entries = await DbConnection.instance.getEntries(widget.widgetId);
     setState(() {
-      _history = entries;
+      _entries = entries.take(widget.historyLimit).toList();
     });
   }
 
@@ -40,14 +42,16 @@ class _InputBlockState extends State<InputBlock> {
 
     final entry = await DbConnection.instance.addEntry(widget.widgetId, text);
     setState(() {
-      _history.insert(0, entry);
+      _entries.insert(0, entry);
+      if (_entries.length > widget.historyLimit) {
+        _entries = _entries.take(widget.historyLimit).toList();
+      }
       _controller.clear();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Optionally, remove or adjust ConstrainedBox if needed
     final maxHeight = MediaQuery.of(context).size.height * 0.8;
 
     return ConstrainedBox(
@@ -75,7 +79,7 @@ class _InputBlockState extends State<InputBlock> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: _history.isEmpty
+              child: _entries.isEmpty
                   ? const Center(
                       child: Text(
                         "No entries yet",
@@ -85,9 +89,9 @@ class _InputBlockState extends State<InputBlock> {
                   : ListView.builder(
                       shrinkWrap: true,
                       physics: const ClampingScrollPhysics(),
-                      itemCount: _history.length,
+                      itemCount: _entries.length,
                       itemBuilder: (context, index) {
-                        final entry = _history[index];
+                        final entry = _entries[index];
                         return Card(
                           color: Colors.white.withOpacity(0.15),
                           shape: const RoundedRectangleBorder(
@@ -103,8 +107,8 @@ class _InputBlockState extends State<InputBlock> {
                           ),
                         );
                       },
-                    ),
-            ),
+                    )
+            )
           ],
         ),
       ),

@@ -45,7 +45,7 @@ class HomeScreen extends StatelessWidget {
       isHeader: false,
       content: () => InputBlock(
         widgetId: "widget-7",
-        placeholder: "Type something...",
+        placeholder: "Type something..."
       ),
     ),
     MyWidgetData(
