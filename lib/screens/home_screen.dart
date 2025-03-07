@@ -25,9 +25,9 @@ class HomeScreen extends StatelessWidget {
 
   final List<MyWidgetData> widgetsData = [
     MyWidgetData(
-      name: "Title",
+      name: "Health",
       description: "",
-      aspectRatio: 0.2,
+      aspectRatio: 0.1,
       isHeader: true,
       content: () => TextBlock(text: "welliuᴍ"),
     ),
@@ -43,10 +43,8 @@ class HomeScreen extends StatelessWidget {
       description: "This is the query for Widget 7.",
       aspectRatio: 0.3,
       isHeader: false,
-      content: () => InputBlock(
-        widgetId: "widget-7",
-        placeholder: "Type something..."
-      ),
+      content: () =>
+          InputBlock(widgetId: "widget-7", placeholder: "Type something..."),
     ),
     MyWidgetData(
       name: "Progress 20 of 100",
@@ -63,9 +61,9 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Code New Roman Demo',
+          'welliuᴍ',
           style: TextStyle(
-            fontFamily: 'CodeNewRoman', // Use Code New Roman for the title
+            fontFamily: 'CodeNewRoman',
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -95,15 +93,14 @@ class HomeScreen extends StatelessWidget {
                   height: widgetHeight,
                   margin: const EdgeInsets.only(bottom: 8.0),
                   decoration: BoxDecoration(
-                    color: widgetData.isHeader ? Colors.black26 : Colors.black,
-                    boxShadow: [
+                    color: widgetData.isHeader ? Colors.transparent : Colors.black,
+                    boxShadow: widgetData.isHeader ? [] : [
                       BoxShadow(
-                        color: Colors.white.withOpacity(0.5), // drop-shadow
+                        color: Colors.white.withOpacity(0.5),
                         blurRadius: 4,
                         spreadRadius: 1,
                       ),
                     ],
-                    // Removed borderRadius to eliminate rounded corners
                     borderRadius: BorderRadius.zero,
                   ),
                   child: Column(
@@ -127,7 +124,8 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ],
                   ),
-                ),              );
+                ),
+              );
             },
           );
         },

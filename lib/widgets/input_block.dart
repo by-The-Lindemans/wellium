@@ -22,7 +22,6 @@ class InputBlock extends StatefulWidget {
 class _InputBlockState extends State<InputBlock> {
   final TextEditingController _controller = TextEditingController();
   List<WidgetEntry> _entries = [];
-
   @override
   void initState() {
     super.initState();
@@ -36,6 +35,24 @@ class _InputBlockState extends State<InputBlock> {
     });
   }
 
+  Widget _buildEntryCard(WidgetEntry entry) {
+    return Card(
+      elevation: entry.isHeader ? 0 : 1,
+      color: Colors.white.withOpacity(0.15),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.zero,
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      shadowColor: entry.isHeader ? Colors.transparent : Colors.white.withOpacity(0.5),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Text(
+          entry.content,
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+    );
+  }
   Future<void> _handleSubmit() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
