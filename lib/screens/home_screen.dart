@@ -32,22 +32,22 @@ class HomeScreen extends StatelessWidget {
       content: () => TextBlock(text: "welliuᴍ"),
     ),
     MyWidgetData(
-      name: "Widget 2",
+      name: "Text Widget",
       description: "This is the description for Widget 2.",
       aspectRatio: 0.3,
       isHeader: false,
       content: () => TextBlock(text: "Sample text for Widget 2."),
     ),
     MyWidgetData(
-      name: "Input Widget 7",
+      name: "Input Widget",
       description: "This is the query for Widget 7.",
-      aspectRatio: 0.3,
+      aspectRatio: 0.5,
       isHeader: false,
       content: () =>
           InputBlock(widgetId: "widget-7", placeholder: "Type something..."),
     ),
     MyWidgetData(
-      name: "Progress 20 of 100",
+      name: "Progress Widget",
       description: "This is the description for Widget 8.",
       aspectRatio: 0.3,
       isHeader: false,
@@ -93,33 +93,42 @@ class HomeScreen extends StatelessWidget {
                   height: widgetHeight,
                   margin: const EdgeInsets.only(bottom: 8.0),
                   decoration: BoxDecoration(
-                    color: widgetData.isHeader ? Colors.transparent : Colors.black,
-                    boxShadow: widgetData.isHeader ? [] : [
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.5),
-                        blurRadius: 4,
-                        spreadRadius: 1,
-                      ),
-                    ],
+                    color:
+                        widgetData.isHeader ? Colors.transparent : Colors.black,
+                    boxShadow: widgetData.isHeader
+                        ? []
+                        : [
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.5),
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                            ),
+                          ],
                     borderRadius: BorderRadius.zero,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        widgetData.name,
-                        style: TextStyle(
-                          fontSize: widgetData.isHeader ? 28 : 18,
-                          color: Colors.white,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12.0),
+                        child: Text(
+                          widgetData.name,
+                          style: TextStyle(
+                            fontSize: widgetData.isHeader ? 28 : 18,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                       if (!widgetData.isHeader) ...[
                         Expanded(
                           child: widgetData.content(),
                         ),
-                        Text(
-                          widgetData.description,
-                          style: const TextStyle(color: Colors.white),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            widgetData.description,
+                            style: const TextStyle(color: Colors.white),
+                          ),
                         ),
                       ],
                     ],

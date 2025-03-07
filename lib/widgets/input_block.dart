@@ -12,7 +12,7 @@ class InputBlock extends StatefulWidget {
     Key? key,
     required this.widgetId,
     required this.placeholder,
-    this.historyLimit = 2,
+    this.historyLimit = 4,
   }) : super(key: key);
 
   @override
@@ -86,10 +86,11 @@ class _InputBlockState extends State<InputBlock> {
                 hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.15),
-                border: const OutlineInputBorder(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.all(16),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               ),
               style: const TextStyle(color: Colors.white),
               onSubmitted: (_) => _handleSubmit(),
@@ -109,14 +110,14 @@ class _InputBlockState extends State<InputBlock> {
                       itemCount: _entries.length,
                       itemBuilder: (context, index) {
                         final entry = _entries[index];
-                        return Card(
-                          color: Colors.white.withOpacity(0.15),
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
-                          ),
+                        return Container(
                           margin: const EdgeInsets.symmetric(vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                           child: Padding(
-                            padding: const EdgeInsets.all(8.0),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                             child: Text(
                               entry.content,
                               style: const TextStyle(color: Colors.white),
