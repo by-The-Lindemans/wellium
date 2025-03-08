@@ -143,9 +143,12 @@ class HomeScreen extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width, // This allows full width
+      ),
       builder: (ctx) {
         return SizedBox(
-          width: MediaQuery.of(context).size.width * 0.95,
+          width: MediaQuery.of(context).size.width,
           height: MediaQuery.of(context).size.height * 0.66,
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -159,7 +162,10 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: widgetData.content(),
+                child: SizedBox(
+                  width: double.infinity, // Forces content to take full width
+                  child: widgetData.content(),
+                ),
               ),
             ],
           ),
