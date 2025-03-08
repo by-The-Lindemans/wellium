@@ -55,11 +55,8 @@ class _InputBlockState extends State<InputBlock> {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final containerWidth = constraints.maxWidth;
-
       
         // Scale all measurements based on container width
-
-
         final itemHeight = containerWidth * 0.075; // Increase this from 0.04 to 0.075 for both
         final textSize = itemHeight * 0.35;
       
@@ -70,19 +67,11 @@ class _InputBlockState extends State<InputBlock> {
         final itemMargin = containerWidth * 0.01;
         final spaceBetweenElements = containerWidth * 0.04;
         
-
-
-
-
-
-
-
         return Container(
           padding: EdgeInsets.all(containerPadding),
           color: Colors.black,
           child: Column(
             children: [
-
               Container( // Changed from SizedBox to Container
                 height: itemHeight,
                 decoration: BoxDecoration( // Add decoration here to match list items
@@ -102,18 +91,13 @@ class _InputBlockState extends State<InputBlock> {
                       color: Colors.white.withOpacity(0.5),
                       fontSize: textSize,
                     ),
-
-
                     filled: false, // Changed from true to false since container has color
                     fillColor: Colors.transparent, // Changed fill color
                     border: OutlineInputBorder(
-
                       borderRadius: BorderRadius.circular(containerWidth * 0.05),
                       borderSide: BorderSide.none,
                     ),
                     contentPadding: EdgeInsets.symmetric(
-
-
                       horizontal: horizontalItemPadding,
                       vertical: verticalItemPadding, // Use same padding as list items
                     ),
@@ -167,5 +151,4 @@ class _InputBlockState extends State<InputBlock> {
         );
       },
     );
-
   }  }
