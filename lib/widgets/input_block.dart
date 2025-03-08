@@ -53,7 +53,7 @@ class _InputBlockState extends State<InputBlock> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        final itemHeight = constraints.maxWidth * 0.045;
+        final itemHeight = constraints.maxWidth * 0.04;
         final textSize = itemHeight * 0.35;  // Reduced from 0.5 to 0.35        
         return Container(
           padding: const EdgeInsets.all(16),
@@ -108,14 +108,16 @@ class _InputBlockState extends State<InputBlock> {
                               color: Colors.white.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(20),
                             ),
+                            alignment: Alignment.centerLeft,
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
                               child: Text(
                                 entry.content,
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: textSize,
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           );
