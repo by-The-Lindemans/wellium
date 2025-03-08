@@ -94,45 +94,42 @@ class HomeScreen extends StatelessWidget {
                   height: widgetHeight,
                   margin: const EdgeInsets.only(bottom: 8.0),
                   decoration: BoxDecoration(
-                    color:
-                        widgetData.isHeader ? Colors.transparent : Colors.black,
-                    boxShadow: widgetData.isHeader
-                        ? []
-                        : [
-                            BoxShadow(
-                              color: Colors.white.withOpacity(0.5),
-                              blurRadius: 4,
-                              spreadRadius: 1,
-                            ),
-                          ],
+                    color: widgetData.isHeader ? Colors.transparent : Colors.black,
+                    boxShadow: widgetData.isHeader ? [] : [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.5),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ],
                     borderRadius: BorderRadius.zero,
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12.0),
-                        child: Text(
-                          widgetData.name,
-                          style: TextStyle(
-                            fontSize: widgetData.isHeader ? 28 : 18,
-                            color: Colors.white,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            widgetData.name,
+                            style: TextStyle(
+                              fontSize: widgetData.isHeader ? 28 : 18,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
-                      ),
-                      if (!widgetData.isHeader) ...[
-                        Expanded(
-                          child: widgetData.content(),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Text(
-                            widgetData.description,
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ],
+                          if (!widgetData.isHeader) ...[
+                            SizedBox(
+                              height: constraints.maxHeight * 0.7,
+                              child: widgetData.content(),
+                            ),
+                            Text(
+                              widgetData.description,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
                   ),
                 ),
               );
@@ -147,11 +144,11 @@ class HomeScreen extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
-        return Container(
+        return SizedBox(
           width: MediaQuery.of(context).size.width * 0.95,
-          color: Colors.black87,
           height: MediaQuery.of(context).size.height * 0.66,
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               AppBar(
                 backgroundColor: Colors.black45,
@@ -161,7 +158,9 @@ class HomeScreen extends StatelessWidget {
                   onPressed: () => Navigator.of(ctx).pop(),
                 ),
               ),
-              Expanded(child: widgetData.content()),
+              Expanded(
+                child: widgetData.content(),
+              ),
             ],
           ),
         );

@@ -22,6 +22,7 @@ class InputBlock extends StatefulWidget {
 class _InputBlockState extends State<InputBlock> {
   final TextEditingController _controller = TextEditingController();
   List<WidgetEntry> _entries = [];
+
   @override
   void initState() {
     super.initState();
@@ -35,24 +36,6 @@ class _InputBlockState extends State<InputBlock> {
     });
   }
 
-  Widget _buildEntryCard(WidgetEntry entry) {
-    return Card(
-      elevation: entry.isHeader ? 0 : 1,
-      color: Colors.white.withOpacity(0.15),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.zero,
-      ),
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      shadowColor: entry.isHeader ? Colors.transparent : Colors.white.withOpacity(0.5),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Text(
-          entry.content,
-          style: const TextStyle(color: Colors.white),
-        ),
-      ),
-    );
-  }
   Future<void> _handleSubmit() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
@@ -66,70 +49,83 @@ class _InputBlockState extends State<InputBlock> {
       _controller.clear();
     });
   }
-
   @override
   Widget build(BuildContext context) {
-    final maxHeight = MediaQuery.of(context).size.height * 0.8;
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxHeight),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        color: Colors.black,
-        child: Column(
-          children: [
-            TextField(
-              controller: _controller,
-              maxLines: 1,
-              decoration: InputDecoration(
-                hintText: widget.placeholder,
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.15),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none,
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final itemHeight = constraints.maxWidth * 0.045;
+        final textSize = itemHeight * 0.35;  // Reduced from 0.5 to 0.35        
+        return Container(
+          padding: const EdgeInsets.all(16),
+          color: Colors.black,
+          child: Column(
+            children: [
+              SizedBox(
+                height: itemHeight,
+                child: TextField(
+                  controller: _controller,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: textSize,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: widget.placeholder,
+                    hintStyle: TextStyle(
+                      color: Colors.white.withOpacity(0.5),
+                      fontSize: textSize,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.15),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  ),
+                  onSubmitted: (_) => _handleSubmit(),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               ),
-              style: const TextStyle(color: Colors.white),
-              onSubmitted: (_) => _handleSubmit(),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: _entries.isEmpty
-                  ? const Center(
-                      child: Text(
-                        "No entries yet",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    )
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      physics: const ClampingScrollPhysics(),
-                      itemCount: _entries.length,
-                      itemBuilder: (context, index) {
-                        final entry = _entries[index];
-                        return Container(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            child: Text(
-                              entry.content,
-                              style: const TextStyle(color: Colors.white),
+              const SizedBox(height: 16),
+              Expanded(
+                child: _entries.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "No entries yet",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: const ClampingScrollPhysics(),
+                        itemCount: _entries.length,
+                        itemBuilder: (context, index) {
+                          final entry = _entries[index];
+                          return Container(
+                            height: itemHeight,
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                          ),
-                        );
-                      },
-                    )
-            )
-          ],
-        ),
-      ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              child: Text(
+                                entry.content,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: textSize,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
