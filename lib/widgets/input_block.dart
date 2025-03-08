@@ -13,7 +13,7 @@ class InputBlock extends StatefulWidget {
     Key? key,
     required this.widgetId,
     required this.placeholder,
-    this.historyLimit = 3,
+    this.historyLimit = 5,
   }) : super(key: key);
 
   @override
