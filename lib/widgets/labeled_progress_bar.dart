@@ -35,7 +35,7 @@ class LabeledProgressBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(9),
               child: LinearProgressIndicator(
                 value: numerator / denominator,
-                backgroundColor: Colors.black,
+                backgroundColor: Colors.white,
                 valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
                 minHeight: 20,
               ),

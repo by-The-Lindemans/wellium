@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Code New Roman Demo',
+      title: 'welliuᴍ',
       theme: ThemeData.dark().copyWith(
         textTheme: GoogleFonts.notoSansTextTheme(
           ThemeData.dark().textTheme,

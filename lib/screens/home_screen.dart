@@ -55,7 +55,6 @@ class HomeScreen extends StatelessWidget {
     ),
     // Add more widgets as needed
   ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,10 +65,12 @@ class HomeScreen extends StatelessWidget {
             fontFamily: 'CodeNewRoman',
             fontSize: 24,
             fontWeight: FontWeight.bold,
+            color: Color(0xFF7F7F7F),
           ),
         ),
         centerTitle: true,
         backgroundColor: Colors.black,
+        scrolledUnderElevation: 0,  // This prevents color change on scroll
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -141,13 +142,13 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
-
   void _showWidgetModal(BuildContext context, MyWidgetData widgetData) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
         return Container(
+          width: MediaQuery.of(context).size.width * 0.95,
           color: Colors.black87,
           height: MediaQuery.of(context).size.height * 0.66,
           child: Column(
