@@ -55,25 +55,40 @@ class _InputBlockState extends State<InputBlock> {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final containerWidth = constraints.maxWidth;
-        
+
+      
         // Scale all measurements based on container width
-        final itemHeight = containerWidth * 0.075;
-        final textSize = itemHeight * 0.35;  // Reduced from 0.5 to 0.35        
-        
+
+
+        final itemHeight = containerWidth * 0.075; // Increase this from 0.04 to 0.075 for both
+        final textSize = itemHeight * 0.35;
+      
         // Scale padding and margins proportionally
-        final containerPadding = containerWidth * 0.04; // ~16px on normal sized screen
-        final horizontalItemPadding = containerWidth * 0.05; // ~20px on normal sized screen
-        final verticalItemPadding = containerWidth * 0.02; // ~8px on normal sized screen
-        final itemMargin = containerWidth * 0.01; // ~4px on normal sized screen
-        final spaceBetweenElements = containerWidth * 0.04; // ~16px on normal sized screen
-          
+        final containerPadding = containerWidth * 0.04;
+        final horizontalItemPadding = containerWidth * 0.05;
+        final verticalItemPadding = containerWidth * 0.02;
+        final itemMargin = containerWidth * 0.01;
+        final spaceBetweenElements = containerWidth * 0.04;
+        
+
+
+
+
+
+
+
         return Container(
           padding: EdgeInsets.all(containerPadding),
           color: Colors.black,
           child: Column(
             children: [
-              SizedBox(
+
+              Container( // Changed from SizedBox to Container
                 height: itemHeight,
+                decoration: BoxDecoration( // Add decoration here to match list items
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(containerWidth * 0.05),
+                ),
                 child: TextField(
                   controller: _controller,
                   maxLines: 1,
@@ -87,15 +102,20 @@ class _InputBlockState extends State<InputBlock> {
                       color: Colors.white.withOpacity(0.5),
                       fontSize: textSize,
                     ),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.15),
+
+
+                    filled: false, // Changed from true to false since container has color
+                    fillColor: Colors.transparent, // Changed fill color
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(containerWidth * 0.05), // Scale border radius
+
+                      borderRadius: BorderRadius.circular(containerWidth * 0.05),
                       borderSide: BorderSide.none,
                     ),
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: horizontalItemPadding, 
-                      vertical: verticalItemPadding / 2
+
+
+                      horizontal: horizontalItemPadding,
+                      vertical: verticalItemPadding, // Use same padding as list items
                     ),
                   ),
                   onSubmitted: (_) => _handleSubmit(),
@@ -147,5 +167,5 @@ class _InputBlockState extends State<InputBlock> {
         );
       },
     );
-  }
-  }
+
+  }  }
