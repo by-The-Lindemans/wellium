@@ -13,29 +13,34 @@ class ProgressBar extends StatelessWidget {
     this.backgroundColor = Colors.white,
     this.progressColor = Colors.blue,
   }) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
-    final normalized = percent.clamp(0, 100);
-    final radius = height / 2; // Proper radius for fully rounded corners
-    
-    return Container(
-      height: height,
-      width: double.infinity, // Make sure it takes full width
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(radius),
-      ),
-      child: FractionallySizedBox(
-        widthFactor: normalized / 100,
-        alignment: Alignment.centerLeft,
-        child: Container(
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final containerWidth = constraints.maxWidth;
+        final normalizedHeight = height > 0 ? height : containerWidth * 0.025;
+        final normalized = percent.clamp(0, 100);
+        final radius = normalizedHeight / 2; // Perfect radius for fully rounded corners
+        
+        return Container(
+          height: normalizedHeight,
+          width: double.infinity,
           decoration: BoxDecoration(
-            color: progressColor,
+            color: backgroundColor,
             borderRadius: BorderRadius.circular(radius),
           ),
-        ),
-      ),
+          child: FractionallySizedBox(
+            widthFactor: normalized / 100,
+            alignment: Alignment.centerLeft,
+            child: Container(
+              decoration: BoxDecoration(
+                color: progressColor,
+                borderRadius: BorderRadius.circular(radius),
+              ),
+            ),
+          ),
+        );
+      }
     );
   }
 }

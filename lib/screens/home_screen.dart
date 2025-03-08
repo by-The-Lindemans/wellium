@@ -41,7 +41,7 @@ class HomeScreen extends StatelessWidget {
     MyWidgetData(
       name: "Input Widget",
       description: "This is the query for Widget 7.",
-      aspectRatio: 0.5,
+      aspectRatio: 1,
       isHeader: false,
       content: () =>
           InputBlock(widgetId: "widget-7", placeholder: "Type something..."),
@@ -59,29 +59,34 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'welliuᴍ',
           style: TextStyle(
             fontFamily: 'CodeNewRoman',
-            fontSize: 24,
+            fontSize: MediaQuery.of(context).size.width * 0.06,
             fontWeight: FontWeight.bold,
             color: Color(0xFF7F7F7F),
           ),
         ),
         centerTitle: true,
         backgroundColor: Colors.black,
-        scrolledUnderElevation: 0,  // This prevents color change on scroll
+        scrolledUnderElevation: 0,
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final screenWidth = constraints.maxWidth;
+          final containerWidth = constraints.maxWidth;
+          final containerPadding = containerWidth * 0.02;
 
           return ListView.builder(
-            padding: const EdgeInsets.all(8.0),
+            padding: EdgeInsets.all(containerPadding),
             itemCount: widgetsData.length,
             itemBuilder: (context, index) {
               final widgetData = widgetsData[index];
-              final widgetHeight = screenWidth * widgetData.aspectRatio;
+              final referenceHeight = containerWidth * widgetData.aspectRatio;
+              final fontSize = widgetData.isHeader ? 
+                  containerWidth * 0.07 : containerWidth * 0.045;
+              final descriptionSize = containerWidth * 0.035;
+              final marginBottom = containerWidth * 0.02;
 
               return GestureDetector(
                 onTap: () {
@@ -90,46 +95,67 @@ class HomeScreen extends StatelessWidget {
                   }
                 },
                 child: Container(
-                  width: screenWidth,
-                  height: widgetHeight,
-                  margin: const EdgeInsets.only(bottom: 8.0),
+                  width: containerWidth,
+                  margin: EdgeInsets.only(bottom: marginBottom),
                   decoration: BoxDecoration(
                     color: widgetData.isHeader ? Colors.transparent : Colors.black,
                     boxShadow: widgetData.isHeader ? [] : [
                       BoxShadow(
                         color: Colors.white.withOpacity(0.5),
-                        blurRadius: 4,
-                        spreadRadius: 1,
+                        blurRadius: containerWidth * 0.01,
+                        spreadRadius: containerWidth * 0.0025,
                       ),
                     ],
-                    borderRadius: BorderRadius.zero,
                   ),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: containerWidth * 0.03),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            vertical: containerWidth * 0.01,
+                            horizontal: containerWidth * 0.02,
+                          ),
+                          child: Text(
                             widgetData.name,
                             style: TextStyle(
-                              fontSize: widgetData.isHeader ? 28 : 18,
+                              fontSize: fontSize,
                               color: Colors.white,
                             ),
+                            textAlign: TextAlign.center,
                           ),
-                          if (!widgetData.isHeader) ...[
-                            SizedBox(
-                              height: constraints.maxHeight * 0.7,
-                              child: widgetData.content(),
+                        ),
+                        if (!widgetData.isHeader) ...[
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxHeight: referenceHeight * 0.65,
+                              minHeight: referenceHeight * 0.3,
                             ),
-                            Text(
+                            child: widgetData.content(),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              containerWidth * 0.04,
+                              containerWidth * 0.02,
+                              containerWidth * 0.04,
+                              containerWidth * 0.01,
+                            ),
+                            child: Text(
                               widgetData.description,
-                              style: const TextStyle(color: Colors.white),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: descriptionSize,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ],
+                          ),
                         ],
-                      );
-                    },
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -140,30 +166,39 @@ class HomeScreen extends StatelessWidget {
     );
   }
   void _showWidgetModal(BuildContext context, MyWidgetData widgetData) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width, // This allows full width
+        maxWidth: screenWidth,
       ),
       builder: (ctx) {
         return SizedBox(
-          width: MediaQuery.of(context).size.width,
-          height: MediaQuery.of(context).size.height * 0.66,
+          width: screenWidth,
+          height: screenHeight * 0.66,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               AppBar(
                 backgroundColor: Colors.black45,
-                title: Text(widgetData.name),
+                title: Text(
+                  widgetData.name,
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.05,
+                  ),
+                ),
                 leading: IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => Navigator.of(ctx).pop(),
+                  iconSize: screenWidth * 0.06,
                 ),
               ),
               Expanded(
                 child: SizedBox(
-                  width: double.infinity, // Forces content to take full width
+                  width: double.infinity,
                   child: widgetData.content(),
                 ),
               ),
