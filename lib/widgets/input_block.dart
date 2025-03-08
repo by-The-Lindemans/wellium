@@ -57,7 +57,7 @@ class _InputBlockState extends State<InputBlock> {
         final containerWidth = constraints.maxWidth;
       
         // Scale all measurements based on container width
-        final itemHeight = containerWidth * 0.075; // Increase this from 0.04 to 0.075 for both
+        final itemHeight = containerWidth * 0.075;
         final textSize = itemHeight * 0.35;
       
         // Scale padding and margins proportionally

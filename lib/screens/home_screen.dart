@@ -167,33 +167,48 @@ class HomeScreen extends StatelessWidget {
   }
   void _showWidgetModal(BuildContext context, MyWidgetData widgetData) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    
+  
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.black, // Set background color for entire modal
       constraints: BoxConstraints(
         maxWidth: screenWidth,
       ),
       builder: (ctx) {
         return SizedBox(
           width: screenWidth,
-          height: screenHeight * 0.66,
+          height: MediaQuery.of(context).size.height * 0.66,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AppBar(
-                backgroundColor: Colors.black45,
-                title: Text(
-                  widgetData.name,
-                  style: TextStyle(
-                    fontSize: screenWidth * 0.05,
-                  ),
-                ),
-                leading: IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  iconSize: screenWidth * 0.06,
+              // Custom App Bar - matches the widget styling exactly
+              Container(
+                height: screenWidth * 0.15, // Proportional height
+                color: Colors.black45,
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                child: Row(
+                  children: [
+                    // Close button
+                    GestureDetector(
+                      onTap: () => Navigator.of(ctx).pop(),
+                      child: Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: screenWidth * 0.06,
+                      ),
+                    ),
+                    SizedBox(width: screenWidth * 0.04),
+                    // Title with EXACT same styling as widget title
+                    Text(
+                      widgetData.name,
+                      style: TextStyle(
+                        fontSize: widgetData.isHeader ? screenWidth * 0.07 : screenWidth * 0.045,
+                        color: Colors.white,
+                        // If you have other specific text styles in your app, add them here
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Expanded(
@@ -207,5 +222,4 @@ class HomeScreen extends StatelessWidget {
         );
       },
     );
-  }
-}
+  }}
