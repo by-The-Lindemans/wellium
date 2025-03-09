@@ -41,6 +41,7 @@ dependencies:
 
   # Web/desktop/mobile compatibility utilities
   path: ^1.8.3
+  flutter_riverpod: ^2.6.1
 
 dev_dependencies:
   flutter_test:
