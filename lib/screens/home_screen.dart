@@ -12,14 +12,14 @@ final widgetsDataProvider = Provider<List<WidgetData>>((ref) {
       description: "",
       isHeader: true,
       content: () => TextBlock(text: "welliuᴍ"),
-      aspectRatio: 4,
+      aspectRatio: 16.0,
     ),
     WidgetData(
       name: "Text Widget",
       description: "This is the description for Widget 2.",
       isHeader: false,
       content: () => TextBlock(text: "Sample text for Widget 2."),
-      aspectRatio: 2,
+      aspectRatio: 3.0,
     ),
     WidgetData(
       name: "Input Widget",
@@ -27,7 +27,7 @@ final widgetsDataProvider = Provider<List<WidgetData>>((ref) {
       isHeader: false,
       content: () =>
           InputBlock(widgetId: "widget-7", placeholder: "Type something..."),
-      aspectRatio: 1,
+      aspectRatio: 1.0,
     ),
     WidgetData(
       name: "Progress Widget",
@@ -52,7 +52,6 @@ class HomeScreen extends ConsumerWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final containerWidth = screenWidth * 0.9;
-    final referenceHeight = screenHeight;
     final fontSize = screenWidth * 0.05;
     final descriptionSize = screenWidth * 0.035;
     final containerPadding = screenWidth * 0.03;
@@ -108,61 +107,46 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: containerWidth * 0.03),
-                      child: Column(
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                              vertical: containerWidth * 0.01,
-                              horizontal: containerWidth * 0.02,
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.all(containerWidth * 0.02),
+                          child: Text(
+                            widgetData.name,
+                            style: TextStyle(
+                              fontSize: fontSize,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
+                          ),
+                        ),
+                        
+                        if (widgetData.isHeader) 
+                          SizedBox(
+                            width: containerWidth,
+                            height: containerWidth / widgetData.aspectRatio,
+                          )
+                        else 
+                          SizedBox(
+                            width: containerWidth,
+                            height: containerWidth / widgetData.aspectRatio,
+                            child: ClipRect(
+                              child: widgetData.content(),
+                            ),
+                          ),
+                        
+                        if (!widgetData.isHeader)
+                          Padding(
+                            padding: EdgeInsets.all(containerWidth * 0.02),
                             child: Text(
-                              widgetData.name,
+                              widgetData.description,
                               style: TextStyle(
-                                fontSize: fontSize,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                fontSize: descriptionSize,
+                                color: Colors.white70,
                               ),
                             ),
                           ),
-                          
-
-
-
-
-
-
-                          if (widgetData.isHeader) ...[
-                            // Apply aspect ratio to headers too
-                            AspectRatio(
-                              aspectRatio: widgetData.aspectRatio,
-                              child: widgetData.content(),
-                            ),
-                          ] else ...[
-                            // Apply aspect ratio to regular widgets
-                            AspectRatio(
-                              aspectRatio: widgetData.aspectRatio,
-                              child: widgetData.content(),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                containerWidth * 0.04,
-                                containerWidth * 0.02,
-                                containerWidth * 0.04,
-                                containerWidth * 0.01,
-                              ),
-                              child: Text(
-                                widgetData.description,
-                                style: TextStyle(
-                                  fontSize: descriptionSize,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                      ],
                     ),
                   ),
                 );
@@ -175,25 +159,33 @@ class HomeScreen extends ConsumerWidget {
   }
   
   void _showWidgetModal(BuildContext context, WidgetData widgetData) {
-
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.7),
       builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.black,
-          insetPadding: EdgeInsets.all(screenWidth * 0.05),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
-          ),
+        return GestureDetector(
+          onTap: () {}, // Prevents taps from passing through
           child: Container(
+            height: screenHeight * 2/3,
+            width: screenWidth,
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(15),
+                topRight: Radius.circular(15),
+              ),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 1,
+              ),
+            ),
             padding: EdgeInsets.all(screenWidth * 0.05),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Widget title
@@ -217,28 +209,12 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 SizedBox(height: screenHeight * 0.03),
                 
-                // Widget content with correct aspect ratio
-                AspectRatio(
-                  aspectRatio: widgetData.aspectRatio,
-                  child: widgetData.content(),
-                ),
-                SizedBox(height: screenHeight * 0.03),
-                
-                // Close button
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text(
-                      'Close',
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.04,
-                      ),
+                // Widget content with proper aspect ratio
+                Expanded(
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: widgetData.aspectRatio,
+                      child: widgetData.content(),
                     ),
                   ),
                 ),
