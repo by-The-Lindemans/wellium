@@ -9,9 +9,12 @@ import 'screens/home_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Hive
   await Hive.initFlutter();
+  
+  // Initialize the DbConnection
   await DbConnection.instance.init();
-
+  
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -46,6 +49,59 @@ class MyApp extends StatelessWidget {
         primaryColor: Colors.blue,
       ),
       home: HomeScreen(),
+    );
+  }
+}
+class SplashScreen extends StatelessWidget {
+  const SplashScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Text('welliuᴍ', 
+              style: TextStyle(
+                fontFamily: 'CodeNewRoman',
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 24),
+            CircularProgressIndicator(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ErrorScreen extends StatelessWidget {
+  final String error;
+  
+  const ErrorScreen({Key? key, required this.error}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('Database Initialization Error', 
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(error),
+          ],
+        ),
+      ),
     );
   }
 }
