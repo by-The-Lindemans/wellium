@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
+
 
 import '../data/db_connection.dart';
 import '../models/widget_entry.dart';
+
+// Add this class for state notification
+class InputBlockNotifier extends ChangeNotifier {
+  static final InputBlockNotifier _instance = InputBlockNotifier._internal();
+  
+  factory InputBlockNotifier() => _instance;
+  
+  InputBlockNotifier._internal();
+  
+  void notifyEntryAdded(String widgetId) {
+    notifyListeners();
+  }
+}
 
 class InputBlock extends StatefulWidget {
   final String widgetId;
@@ -24,17 +37,37 @@ class _InputBlockState extends State<InputBlock> {
   final TextEditingController _controller = TextEditingController();
   List<WidgetEntry> _entries = [];
 
+  
   @override
   void initState() {
     super.initState();
+    _loadHistory();
+    
+    // Listen for changes from other InputBlock instances
+    InputBlockNotifier().addListener(_onEntryChanged);
+  }
+  
+  @override
+  void dispose() {
+    InputBlockNotifier().removeListener(_onEntryChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+  
+  void _onEntryChanged() {
     _loadHistory();
   }
 
   Future<void> _loadHistory() async {
     final entries = await DbConnection.instance.getEntries(widget.widgetId);
-    setState(() {
-      _entries = entries.take(widget.historyLimit).toList();
-    });
+
+
+
+    if (mounted) {
+      setState(() {
+        _entries = entries.take(widget.historyLimit).toList();
+      });
+    }
   }
 
   Future<void> _handleSubmit() async {
@@ -49,6 +82,9 @@ class _InputBlockState extends State<InputBlock> {
       }
       _controller.clear();
     });
+    
+    // Notify other instances
+    InputBlockNotifier().notifyEntryAdded(widget.widgetId);
   }
   @override
   Widget build(BuildContext context) {
@@ -72,9 +108,11 @@ class _InputBlockState extends State<InputBlock> {
           color: Colors.black,
           child: Column(
             children: [
-              Container( // Changed from SizedBox to Container
+
+              Container(
                 height: itemHeight,
-                decoration: BoxDecoration( // Add decoration here to match list items
+
+                decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(containerWidth * 0.05),
                 ),
@@ -91,15 +129,18 @@ class _InputBlockState extends State<InputBlock> {
                       color: Colors.white.withOpacity(0.5),
                       fontSize: textSize,
                     ),
-                    filled: false, // Changed from true to false since container has color
-                    fillColor: Colors.transparent, // Changed fill color
+
+
+                    filled: false,
+                    fillColor: Colors.transparent,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(containerWidth * 0.05),
                       borderSide: BorderSide.none,
                     ),
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: horizontalItemPadding,
-                      vertical: verticalItemPadding, // Use same padding as list items
+
+                      vertical: verticalItemPadding,
                     ),
                   ),
                   onSubmitted: (_) => _handleSubmit(),
@@ -125,7 +166,8 @@ class _InputBlockState extends State<InputBlock> {
                             margin: EdgeInsets.symmetric(vertical: itemMargin),
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(containerWidth * 0.05), // Scale border radius
+
+                              borderRadius: BorderRadius.circular(containerWidth * 0.05),
                             ),
                             alignment: Alignment.centerLeft,
                             child: Padding(
