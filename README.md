@@ -5,9 +5,6 @@
 [![GitHub contributors](https://img.shields.io/github/contributors/by-The-Lindemans/wellium.svg?style=for-the-badge)](https://github.com/by-The-Lindemans/wellium/graphs/contributors)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](http://makeapullrequest.com)
 
-
-# Wellium Project Technical Documentation
-
 ## Overview
 
 Wellium will be a privacy-first wellness platform designed to give users full control over their health data. It will operate entirely on-device, ensuring no cloud storage or third-party data processing. Users will be able to securely import, manage, and share their data while maintaining complete ownership over how and with whom it is used. Secure, encrypted local synchronization will enable seamless access across a user’s devices, while encrypted peer-to-peer sharing will allow trusted data exchange with healthcare providers or authorized individuals.
@@ -24,7 +21,7 @@ Wellium will be a privacy-first wellness platform designed to give users full co
 
 ## System Architecture
 
-### **1. Client Applications**
+### **1. Client Application**
 
 - **Frontend Framework:** Wellium will be built with Flutter using Riverpod for state management.
 - **Error Monitoring:** Sentry will be integrated for tracking application errors.
@@ -32,7 +29,11 @@ Wellium will be a privacy-first wellness platform designed to give users full co
 - **Wearables Integration:** Support will be included for Fitbit, Garmin, and Apple Watch via Bluetooth Low Energy (BLE) and direct file imports.
 - **Data Management:** Users will be able to manually import, categorize, and manage their health data for full control over storage and analysis.
 - **Offline Mode:** The platform will be fully functional without an internet connection.
-- **Background Sync:** Local device sync will operate efficiently in the background, minimizing resource consumption while keeping data up to date.
+- **Background Sync:** Local device sync will operate efficiently in the background, minimizing resource consumption while keeping data up to date
+- **Customization & Accessibility:**
+  - Users will be able to personalize themes, font sizes, and other UI elements.
+  - Features will be designed with accessibility in mind.
+- **Localization:** Multi-language support will be planned, with community-driven translation contributions encouraged.
 
 ### **2. Data Storage & Privacy**
 
@@ -52,14 +53,10 @@ Wellium will be a privacy-first wellness platform designed to give users full co
 
 ### **3. Contribution & Development Workflow**
 
-- **Version Control:** A Git repository will be used with enforced code reviews.
+- **Version Control:** This Github repository will be used with enforced code reviews.
 - **CI/CD Pipeline:** Automated testing and deployment for mobile and desktop builds will be implemented.
 - **Modular Development:** Independent Flutter packages will ensure reusability and flexibility.
-- **Issue Tracking & Documentation:** Contribution guidelines and structured issue tracking will be maintained in an open repository.
-- **Customization & Accessibility:**
-  - Users will be able to personalize themes, font sizes, and other UI elements.
-  - Features will be designed with accessibility in mind.
-- **Localization:** Multi-language support will be planned, with community-driven translation contributions encouraged.
+- **Issue Tracking & Documentation:** Contribution guidelines and structured issue tracking will be maintained in our open repository here on Github.
 
 ## Ensuring Compliance with Project Goals
 
@@ -70,9 +67,6 @@ Contributors should verify that their work aligns with Wellium’s core principl
 3. **Performance & Efficiency:** Implement lightweight, optimized solutions for on-device execution.
 4. **Open-Source Integrity:** Keep contributions modular and well-documented for community adoption.
 5. **Testing & Validation:** Include unit tests, integration tests, and security reviews before deployment.
-
-By following these guidelines, team members will help establish Wellium as a secure, user-friendly, privacy-first wellness platform that prioritizes user-driven data management, secure sharing, and on-device control, with ML insights as a potential future enhancement.
-
 
 ## Contributing
 
