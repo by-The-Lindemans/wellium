@@ -1,0 +1,48 @@
+/*!
+ * (C) Ionic http://ionicframework.com - MIT License
+ */
+import { proxyCustomElement, HTMLElement, h, Host } from '@stencil/core/internal/client';
+import { c as createColorClasses } from './theme.js';
+import { b as getIonMode } from './ionic-global.js';
+
+const noteIosCss = ":host{color:var(--color);font-family:var(--ion-font-family, inherit);-webkit-box-sizing:border-box;box-sizing:border-box}:host(.ion-color){color:var(--ion-color-base)}:host{--color:var(--ion-color-step-350, var(--ion-text-color-step-650, #a6a6a6));font-size:max(14px, 1rem)}";
+
+const noteMdCss = ":host{color:var(--color);font-family:var(--ion-font-family, inherit);-webkit-box-sizing:border-box;box-sizing:border-box}:host(.ion-color){color:var(--ion-color-base)}:host{--color:var(--ion-color-step-600, var(--ion-text-color-step-400, #666666));font-size:0.875rem}";
+
+const Note = /*@__PURE__*/ proxyCustomElement(class Note extends HTMLElement {
+    constructor() {
+        super();
+        this.__registerHost();
+        this.__attachShadow();
+    }
+    render() {
+        const mode = getIonMode(this);
+        return (h(Host, { key: '0ec2ef7367d867fd7588611953f696eecdf3221e', class: createColorClasses(this.color, {
+                [mode]: true,
+            }) }, h("slot", { key: 'a200b94ddffb29cf6dabe6e984220930ea7efdef' })));
+    }
+    static get style() { return {
+        ios: noteIosCss,
+        md: noteMdCss
+    }; }
+}, [33, "ion-note", {
+        "color": [513]
+    }]);
+function defineCustomElement$1() {
+    if (typeof customElements === "undefined") {
+        return;
+    }
+    const components = ["ion-note"];
+    components.forEach(tagName => { switch (tagName) {
+        case "ion-note":
+            if (!customElements.get(tagName)) {
+                customElements.define(tagName, Note);
+            }
+            break;
+    } });
+}
+
+const IonNote = Note;
+const defineCustomElement = defineCustomElement$1;
+
+export { IonNote, defineCustomElement };
