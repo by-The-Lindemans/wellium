@@ -19,23 +19,27 @@ declare global {
 class DemoPeer {
   adapter = new PeerJSPeerAdapter();
   doc = newDoc();
+  prevDoc = this.doc;    
 
   constructor() {
     this.adapter.onMessage(payload => {
       this.doc = mergeRemoteChanges(this.doc, [payload]);
+      this.prevDoc = this.doc;  
       console.log('merged value', this.doc.bloodPressure);
     });
   }
 
   async start(remoteId?: string) {
     await this.adapter.connect(remoteId);
-    console.log('my id', this.adapter.id);
+    console.log('my id', this.adapter.localId);
   }
 
   edit() {
+    const before = this.doc;                      // snapshot
     this.doc = applyLocalChange(this.doc, d => (d.bloodPressure += 1));
-    const delta = encodeChanges(newDoc(), this.doc); // diff from blank for demo
-    this.adapter.send(delta[0]);
+    const deltas = encodeChanges(before, this.doc);  // diff same lineage
+    deltas.forEach(d => this.adapter.send(d));       // send all chunks
+    this.prevDoc = this.doc;                      // advance baseline
   }
 }
 

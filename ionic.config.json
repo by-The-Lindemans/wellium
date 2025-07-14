@@ -3,5 +3,8 @@
   "integrations": {
     "capacitor": {}
   },
-  "type": "react-vite"
+  "type": "react-vite",
+  "ssl": true,
+  "sslcert": "certs/relay.localhost.pem",
+  "sslkey": "certs/relay.localhost-key.pem"
 }
