@@ -15,31 +15,24 @@ body:
       label: Privacy check
       description: Confirm you removed any personal or clinical data.
       options:
-        - label: I confirm this report contains no personal health data.
+        - label: I confirm this report contains no personal or clinical data.
           required: true
 
   - type: input
-    id: os
+    id: environment
     attributes:
-      label: Operating system
-      description: Example: Android 14, iOS 17, Windows 11, macOS 14, Ubuntu 24.04
-      placeholder: your OS and version
+      label: Environment
+      description: OS and version (e.g., Android 14, iOS 17, Windows 11, macOS 14, Ubuntu 24.04)
+      placeholder: OS and version
     validations:
       required: true
 
   - type: input
-    id: ionic_cli
+    id: versions
     attributes:
-      label: Ionic CLI version
-      description: Run `ionic --version`
-    validations:
-      required: true
-
-  - type: input
-    id: app_version
-    attributes:
-      label: wellium app version
-      description: Shown in app settings or from package.json
+      label: App and CLI versions
+      description: wellium app version; Ionic CLI version from `ionic --version`
+      placeholder: wellium 0.x.y; Ionic CLI x.y.z
     validations:
       required: true
 
@@ -47,11 +40,11 @@ body:
     id: steps
     attributes:
       label: Steps to reproduce
-      description: List the exact steps needed to trigger the bug
+      description: List the actions that trigger the bug.
       placeholder: |
-        1. Go to ...
-        2. Tap ...
-        3. Observe ...
+        1. ...
+        2. ...
+        3. ...
     validations:
       required: true
 
@@ -72,8 +65,8 @@ body:
       required: true
 
   - type: textarea
-    id: logs
+    id: additional
     attributes:
-      label: Logs or screenshots
-      description: Paste relevant logs or drag images here. Redact any personal data.
-      render: text
+      label: Additional context
+      description: Logs, screenshots, or notes (redact any personal data).
+      placeholder: Paste logs or drag images here.
