@@ -1,47 +1,79 @@
 # .github/ISSUE_TEMPLATE/bug_report.yml
-
 name: Bug report
 description: Report a reproducible bug in wellium
-title: '[BUG] '
-labels: ['bug']
+title: "[BUG] <short summary>"
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping us improve wellium. Please fill in as much detail as you can.
-        Don’t include any personal health data.
+        Thanks for helping improve wellium. Please do not include personal health data.
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      description: Confirm you removed any personal or clinical data.
+      options:
+        - label: I confirm this report contains no personal health data.
+          required: true
+
   - type: input
     id: os
     attributes:
       label: Operating system
-      description: e.g. Android 12, iOS 15, Windows 11
+      description: Example: Android 14, iOS 17, Windows 11, macOS 14, Ubuntu 24.04
       placeholder: your OS and version
+    validations:
       required: true
+
   - type: input
-    id: ionic_version
+    id: ionic_cli
     attributes:
       label: Ionic CLI version
       description: Run `ionic --version`
+    validations:
       required: true
+
   - type: input
-    id: wellium_version
+    id: app_version
     attributes:
-      label: wellium version
-      description: Found in app settings or `package.json`
+      label: wellium app version
+      description: Shown in app settings or from package.json
+    validations:
       required: true
+
   - type: textarea
     id: steps
     attributes:
       label: Steps to reproduce
-      description: List the actions needed to trigger the bug
+      description: List the exact steps needed to trigger the bug
+      placeholder: |
+        1. Go to ...
+        2. Tap ...
+        3. Observe ...
+    validations:
       required: true
+
   - type: textarea
     id: expected
     attributes:
       label: Expected behavior
+      placeholder: What did you expect to happen?
+    validations:
       required: true
+
   - type: textarea
     id: actual
     attributes:
       label: Actual behavior
+      placeholder: What actually happened?
+    validations:
       required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste relevant logs or drag images here. Redact any personal data.
+      render: text

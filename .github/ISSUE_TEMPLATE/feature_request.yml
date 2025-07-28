@@ -1,36 +1,57 @@
 # .github/ISSUE_TEMPLATE/feature_request.yml
-
 name: Feature request
 description: Propose a new feature or enhancement for wellium
-title: '[FEATURE] '
-labels: ['enhancement']
+title: "[FEATURE] <short summary>"
+labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for helping shape wellium’s future. Describe your idea clearly,
-        focus on how it benefits patients or providers, and suggest any relevant details.
+        Thank you for helping shape wellium. Focus on how this improves the single source of truth and collaboration with providers.
+
   - type: input
     id: summary
     attributes:
       label: Brief summary
-      description: One‑sentence overview of the feature
+      description: One sentence overview of the feature
+      placeholder: Add support for ...
+    validations:
       required: true
+
   - type: textarea
     id: motivation
     attributes:
-      label: User need / motivation
+      label: User need or motivation
       description: Why do patients or providers need this?
+      placeholder: Describe the problem this solves.
+    validations:
       required: true
+
   - type: textarea
-    id: specification
+    id: proposal
     attributes:
       label: Proposed solution
       description: How would this work? Include any technical details.
+      placeholder: Outline UI flow, data model, and any APIs.
+    validations:
       required: false
+
   - type: textarea
     id: alternatives
     attributes:
       label: Alternatives considered
       description: Other options you evaluated
+      placeholder: List pros and cons.
+    validations:
       required: false
+
+  - type: checkboxes
+    id: alignment
+    attributes:
+      label: Alignment check
+      description: Confirm the proposal supports our core goals.
+      options:
+        - label: Improves the accuracy of the user's single source of truth.
+          required: false
+        - label: Improves collaboration with providers.
+          required: false
