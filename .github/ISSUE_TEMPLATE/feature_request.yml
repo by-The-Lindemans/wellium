@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for helping shape wellium. Focus on how this improves the single source of truth and collaboration with providers.
+        Thank you for helping shape wellium. Focus on how this strengthens a person-centered single source of truth for health data and/or improves collaboration with clinicians, caregivers, or other trusted partners.
 
   - type: input
     id: summary
