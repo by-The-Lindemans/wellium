@@ -55,9 +55,9 @@ Need help or want to share ideas? Open an issue on GitHub or join our discussion
 
 We welcome work that strengthens patient ownership and provider collaboration. When you submit a pull request:
 
-- Read `CONTRIBUTING.md` and follow the code of conduct.
+- Read [CONTRIBUTING.md](CONTRIBUTING.md) and follow the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - Run `npm test` and keep all tests passing.
-- Complete the privacy checklist in the PR template.
+- Complete the privacy checklist in the [pull request template](.github/PULL_REQUEST_TEMPLATE.md).
 - Explain how your change enhances our single source of truth or provider integration.
 
 Your contributions help build a health platform that respects patient data and empowers care teams.

@@ -1,0 +1,47 @@
+# .github/ISSUE_TEMPLATE/bug_report.yml
+
+name: Bug report
+description: Report a reproducible bug in wellium
+title: '[BUG] '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping us improve wellium. Please fill in as much detail as you can.
+        Don’t include any personal health data.
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: e.g. Android 12, iOS 15, Windows 11
+      placeholder: your OS and version
+      required: true
+  - type: input
+    id: ionic_version
+    attributes:
+      label: Ionic CLI version
+      description: Run `ionic --version`
+      required: true
+  - type: input
+    id: wellium_version
+    attributes:
+      label: wellium version
+      description: Found in app settings or `package.json`
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the actions needed to trigger the bug
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      required: true

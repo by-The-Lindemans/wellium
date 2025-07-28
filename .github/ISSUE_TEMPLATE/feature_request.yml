@@ -1,0 +1,36 @@
+# .github/ISSUE_TEMPLATE/feature_request.yml
+
+name: Feature request
+description: Propose a new feature or enhancement for wellium
+title: '[FEATURE] '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping shape wellium’s future. Describe your idea clearly,
+        focus on how it benefits patients or providers, and suggest any relevant details.
+  - type: input
+    id: summary
+    attributes:
+      label: Brief summary
+      description: One‑sentence overview of the feature
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: User need / motivation
+      description: Why do patients or providers need this?
+      required: true
+  - type: textarea
+    id: specification
+    attributes:
+      label: Proposed solution
+      description: How would this work? Include any technical details.
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other options you evaluated
+      required: false
