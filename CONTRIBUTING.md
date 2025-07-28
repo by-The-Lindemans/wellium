@@ -14,8 +14,6 @@ We build tools that keep health data in your hands and in sync with your care te
    npm test
    ```
 
-5. Review the privacy checklist in the [pull request template](.github/PULL_REQUEST_TEMPLATE.md).
-
 ## Filing an issue
 
 Use our Issue Forms (create a new issue and pick “Bug report” or “Feature request”). They guide you through:
