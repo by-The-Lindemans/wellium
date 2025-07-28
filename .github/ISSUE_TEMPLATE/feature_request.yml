@@ -44,14 +44,24 @@ body:
       placeholder: List pros and cons.
     validations:
       required: false
-
-  - type: checkboxes
+      
+  - type: dropdown
     id: alignment
     attributes:
-      label: Alignment check
-      description: Confirm the proposal supports our core goals.
+      label: Alignment
+      description: Select all that apply.
+      multiple: true
       options:
-        - label: Improves the accuracy of the user's single source of truth.
-          required: false
-        - label: Improves collaboration with providers.
-          required: false
+        - Strengthens a person-centered single source of truth for health data.
+        - Improves collaboration with clinicians, caregivers, or other trusted partners.
+        - Strengthens a person-centered single source of truth for health data and improves collaboration with clinicians, caregivers, or other trusted partners.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+    options:
+      - label: I confirm this request contains no personal or clinical data.
+        required: true
