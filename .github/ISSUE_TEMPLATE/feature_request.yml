@@ -33,8 +33,6 @@ body:
       label: Proposed solution
       description: How would this work? Include any technical details.
       placeholder: Outline UI flow, data model, and any APIs.
-    validations:
-      required: false
 
   - type: textarea
     id: alternatives
@@ -42,10 +40,8 @@ body:
       label: Alternatives considered
       description: Other options you evaluated
       placeholder: List pros and cons.
-    validations:
-      required: false
 
-    - type: dropdown
+  - type: dropdown
     id: alignment
     attributes:
       label: Alignment
