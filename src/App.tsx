@@ -146,7 +146,7 @@ function Splash({ duration = 1000, onDone }: { duration?: number; onDone: () => 
         /* Overlay stays opaque through 66.666%; fades in the last third */
         @keyframes wl-overlay {
           0% { opacity: 1 }
-          66.666% { opacity: 1 }
+          75% { opacity: 1 }
           100% { opacity: 0 }
         }
 
