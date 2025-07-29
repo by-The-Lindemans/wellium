@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "yws": "PORT=9001 node node_modules/y-webrtc/bin/server.js",
+    "dev": "concurrently -k -n APP,YWS -c auto \"ionic serve --host=relay.localhost --ssl --sslcert certs/relay.localhost.pem --sslkey certs/relay.localhost-key.pem\" \"npm:yws\"",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test.e2e": "cypress run",
@@ -50,6 +51,7 @@
     "@types/react-dom": "19.0.4",
     "@vitejs/plugin-legacy": "^7.1.0",
     "@vitejs/plugin-react": "^4.0.1",
+    "concurrently": "^9.2.0",
     "cypress": "^13.5.0",
     "eslint": "^9.20.1",
     "eslint-plugin-react": "^7.32.2",

@@ -21,9 +21,10 @@ export type YSync = {
 export async function startYSync(opts: {
     pairingSecret: Uint8Array;
     signalingUrls: string[];          // e.g. ["wss://relay.example.com/peerjs"]
+    autoConnect?: boolean;
     maxConns?: number;                // optional cap
 }): Promise<YSync> {
-    const { pairingSecret, signalingUrls, maxConns } = opts;
+    const { pairingSecret, signalingUrls, autoConnect = true, maxConns } = opts;
 
     const room = await sha256Base64Url(pairingSecret);
     const doc = new Y.Doc();
@@ -34,6 +35,8 @@ export async function startYSync(opts: {
         password: pairingSecret,        // hides metadata on the wire
         maxConns
     });
+
+    if (!autoConnect) provider.disconnect();
 
     const stop = () => {
         try { provider.disconnect(); provider.destroy(); } catch { }
