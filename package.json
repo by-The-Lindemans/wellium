@@ -35,7 +35,9 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-router": "^5.3.4",
-    "react-router-dom": "^5.3.4"
+    "react-router-dom": "^5.3.4",
+    "y-webrtc": "^10.3.0",
+    "yjs": "^13.6.27"
   },
   "devDependencies": {
     "@capacitor/cli": "7.4.2",
