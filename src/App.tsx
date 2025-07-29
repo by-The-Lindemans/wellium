@@ -143,7 +143,7 @@ function Splash({ duration = 1000, onDone }: { duration?: number; onDone: () => 
 
         :root { --wl-dur: ${duration}ms; }
 
-        /* Overlay stays opaque through 75%; fades in the last third */
+        /* Overlay stays opaque through 75%; fades in the last quarter */
         @keyframes wl-overlay {
           0% { opacity: 1 }
           75% { opacity: 1 }
