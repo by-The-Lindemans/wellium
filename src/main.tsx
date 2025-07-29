@@ -2,6 +2,12 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { SyncProvider } from './sync/SyncProvider';
+import { StatusBar, Style } from '@capacitor/status-bar';
+
+if (typeof window !== 'undefined') {
+  StatusBar.setStyle({ style: Style.Light }).catch(() => { });
+  StatusBar.setBackgroundColor({ color: '#000000' }).catch(() => { });
+}
 
 const signal = import.meta.env.VITE_SIGNAL_URL;
 if (!signal) {

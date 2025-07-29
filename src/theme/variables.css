@@ -1,2 +1,123 @@
 /* For information on how to create your own theme, please see:
 http://ionicframework.com/docs/theming/ */
+/* src/theme/variables.css */
+
+/* Base app colors */
+:root {
+    /* hard black canvas */
+    --ion-background-color: #000000;
+    --ion-background-color-rgb: 0, 0, 0;
+
+    /* primary text high-contrast on black */
+    --ion-text-color: #e6e6e6;
+    --ion-text-color-rgb: 230, 230, 230;
+
+    /* secondary text and lines; your brand mid gray */
+    --ion-color-step-600: #7f7f7f;
+    /* custom: convenient handle */
+    --ion-color-medium: #7f7f7f;
+    --ion-color-medium-contrast: #000000;
+
+    /* brand accents - tune as needed */
+    --ion-color-primary: #7f7f7f;
+    --ion-color-primary-rgb: 127, 127, 127;
+    --ion-color-primary-contrast: #000000;
+    --ion-color-primary-contrast-rgb: 0, 0, 0;
+    --ion-color-primary-shade: #6f6f6f;
+    --ion-color-primary-tint: #8b8b8b;
+
+    /* surfaces */
+    --ion-color-dark: #0d0d0d;
+    --ion-color-dark-contrast: #e6e6e6;
+
+    /* component defaults */
+    --ion-toolbar-background: #000000;
+    --ion-toolbar-color: #e6e6e6;
+    --ion-tab-bar-background: #000000;
+    --ion-tab-bar-color: #7f7f7f;
+    /* inactive */
+    --ion-tab-bar-color-selected: #e6e6e6;
+    /* active */
+
+    /* content background; avoid white flashes during route transitions */
+    --ion-item-background: #000000;
+}
+
+/* IonContent sometimes needs an explicit background to avoid inherited white */
+ion-content {
+    --background: var(--ion-background-color);
+}
+
+/* Cards, sheets, modals - slightly raised on black */
+ion-card,
+.ion-page .modal-wrapper,
+ion-modal {
+    --background: #0d0d0d;
+    color: var(--ion-text-color);
+}
+
+/* Lists and items */
+ion-item {
+    --background: transparent;
+    --color: var(--ion-text-color);
+    --border-color: #1a1a1a;
+}
+
+/* Inputs */
+ion-input,
+ion-textarea,
+ion-select,
+ion-datetime {
+    --background: #0d0d0d;
+    --color: #e6e6e6;
+    --placeholder-color: #7f7f7f;
+    --highlight-color-focused: var(--ion-color-primary);
+}
+
+/* Buttons */
+ion-button {
+    --background: var(--ion-color-primary);
+    --background-activated: var(--ion-color-primary-shade);
+    --background-focused: var(--ion-color-primary);
+    --color: var(--ion-color-primary-contrast);
+    --border-radius: 8px;
+}
+
+ion-button.button-clear,
+ion-button.button-outline {
+    --color: #e6e6e6;
+    --border-color: #3a3a3a;
+}
+
+/* Toolbar and tabbar hairlines on black */
+ion-toolbar,
+ion-tab-bar {
+    --border-color: #1a1a1a;
+    --color: var(--ion-text-color);
+}
+
+/* Alerts, toasts, popovers */
+ion-alert,
+ion-popover,
+ion-toast {
+    --background: #0d0d0d;
+    --color: #e6e6e6;
+}
+
+/* Global page background to kill white between paints */
+html,
+body,
+ion-app,
+.ion-page {
+    background: #000000 !important;
+    color: var(--ion-text-color);
+}
+
+/* Optional: keep system scrollbars low-contrast on black in desktop builds */
+::-webkit-scrollbar-thumb {
+    background: #262626;
+}
+
+::-webkit-scrollbar-track {
+    background: #0d0d0d;
+}

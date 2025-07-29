@@ -40,7 +40,7 @@ import '@ionic/react/css/display.css';
 
 /* import '@ionic/react/css/palettes/dark.always.css'; */
 /* import '@ionic/react/css/palettes/dark.class.css'; */
-import '@ionic/react/css/palettes/dark.system.css';
+/*import '@ionic/react/css/palettes/dark.system.css';*/
 
 /* Theme variables */
 import './theme/variables.css';
@@ -155,7 +155,7 @@ function Splash({ duration = 1000, onDone }: { duration?: number; onDone: () => 
 
         .wl-splash { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; }
         /* layering: curtain under, SVG above */
-        .wl-curtain { position: absolute; inset: 0; background: #fff; opacity: 1; z-index: 0; }
+        .wl-curtain { position: absolute; inset: 0; background: #000; opacity: 1; z-index: 0; }
         .wl-curtain.fade { animation: wl-fade ${fadeDur}ms ease forwards; }
         .wl-wordwrap { position: relative; z-index: 1; }
 
@@ -214,7 +214,7 @@ function Splash({ duration = 1000, onDone }: { duration?: number; onDone: () => 
             >
               <text
                 x={CX}
-                y={VBH / 2}                      
+                y={VBH / 2}
                 textLength={VBW}
                 lengthAdjust="spacingAndGlyphs"
                 dominantBaseline="middle"
