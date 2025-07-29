@@ -143,14 +143,14 @@ function Splash({ duration = 1000, onDone }: { duration?: number; onDone: () => 
 
         :root { --wl-dur: ${duration}ms; }
 
-        /* Overlay stays opaque through 66.666%; fades in the last third */
+        /* Overlay stays opaque through 75%; fades in the last third */
         @keyframes wl-overlay {
           0% { opacity: 1 }
           75% { opacity: 1 }
           100% { opacity: 0 }
         }
 
-        /* Wordmark scales to full by 33.333%, then holds */
+        /* Wordmark scales to full by 25%, then holds */
         @keyframes wl-intro {
           0% { transform: scale(0) }
           25% { transform: scale(1) }
