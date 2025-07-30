@@ -1,7 +1,7 @@
 {
   "name": "wellium",
   "version": "1.0.0",
-  "description": "An Amazing Capacitor App",
+  "description": "",
   "author": {
     "name": "",
     "email": ""
@@ -11,7 +11,7 @@
     "url": ""
   },
   "license": "MIT",
-  "main": "build/src/index.js",
+  "main": "main.cjs",
   "scripts": {
     "build": "tsc && electron-rebuild",
     "electron:start-live": "node ./live-runner.js",

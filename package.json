@@ -6,6 +6,7 @@
   "scripts": {
     "yws": "PORT=9001 node node_modules/y-webrtc/bin/server.js",
     "dev": "concurrently -k -n APP,YWS -c auto \"ionic serve --host=relay.localhost --ssl --sslcert certs/relay.localhost.pem --sslkey certs/relay.localhost-key.pem\" \"npm:yws\"",
+    "electron:dev": "concurrently -k -n APP,YWS,ELC -c auto \"ionic serve --host=relay.localhost --ssl --sslcert certs/relay.localhost.pem --sslkey certs/relay.localhost-key.pem\" \"npm run yws\" \"npx electron electron\"",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test.e2e": "cypress run",
@@ -15,6 +16,7 @@
   },
   "dependencies": {
     "@capacitor-community/electron": "^5.0.1",
+    "@capacitor-community/native-audio": "^7.0.0",
     "@capacitor/android": "7.4.2",
     "@capacitor/app": "7.0.1",
     "@capacitor/core": "7.4.2",
