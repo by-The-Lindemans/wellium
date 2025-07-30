@@ -1,9 +1,9 @@
-// src/sync/SyncProvider.tsx
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as Y from "yjs";
-import { startYSync, sha256Base64Url } from "./yjsSync";
-import { appendUpdate, loadAllUpdates } from "./yjsStorage";
+import { startYSync } from "./yjsSync";
+import { appendUpdateEncrypted, loadAllUpdatesEncrypted } from "./yjsStorage";
 import { CapacitorStorageAdapter } from "../adapters/storageAdapterCapacitor";
+import { deriveKeysFromSecret } from "../crypto/KeyManager";
 
 type Status = "idle" | "hydrating" | "connecting" | "connected" | "error";
 
@@ -18,6 +18,7 @@ type SyncCtx = {
 };
 
 const SECRET_KEY = "wellium/pairing-secret";
+
 const SyncContext = createContext<SyncCtx>({
     status: "idle",
     pairWithSecret: async () => { },
@@ -48,15 +49,19 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
         setStatus("hydrating");
         setError(undefined);
 
+        // derive per-room keys and a stable tag from the same secret
+        const secretB64 = bytesToB64url(secretBytes);
+        const keys = await deriveKeysFromSecret(secretB64);
+        const feedKey = "yjs-" + keys.tag; // local namespace for chunk files
+
+        // start Y and hold provider disconnected until persistence catches up
         const svc = await startYSync({ pairingSecret: secretBytes, signalingUrls, autoConnect: false });
         svcRef.current = Promise.resolve(svc) as any;
 
-        const tag = await sha256Base64Url(secretBytes);
-        const key = "yjs-" + tag.slice(0, 16);
-
-        await loadAllUpdates(svc.doc, storage, key);
-
-        svc.doc.on("update", (u: Uint8Array) => { void appendUpdate(storage, key, u); });
+        // hydrate from local encrypted feed, then persist subsequent updates
+        await loadAllUpdatesEncrypted(svc.doc, storage, feedKey, keys.aes);
+        const appendEnc = appendUpdateEncrypted(storage, feedKey, keys.aes);
+        svc.doc.on("update", (u: Uint8Array) => { void appendEnc(u); });
 
         setYDoc(svc.doc);
         setYMap(svc.data);
@@ -64,7 +69,7 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
         setStatus("connecting");
         svc.provider.connect();
 
-        // y-webrtc does not expose a rich status; assume connected after a brief tick
+        // y-webrtc has limited status; assume connected after a brief tick
         setTimeout(() => setStatus("connected"), 300);
     }
 

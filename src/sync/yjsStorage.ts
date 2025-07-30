@@ -1,12 +1,57 @@
 import * as Y from "yjs";
-import { StorageAdapter } from "../adapters/storageAdapter";
+import { CapacitorStorageAdapter } from '../adapters/storageAdapterCapacitor';
+
+
+
+async function encryptAtRest(key: CryptoKey, u: Uint8Array): Promise<Uint8Array> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, u));
+  const out = new Uint8Array(iv.byteLength + ct.byteLength);
+  out.set(iv, 0);
+  out.set(ct, iv.byteLength);
+  return out;
+}
+async function decryptAtRest(key: CryptoKey, blob: Uint8Array): Promise<Uint8Array> {
+  const iv = blob.slice(0, 12);
+  const ct = blob.slice(12);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  return new Uint8Array(pt);
+}
+
+export async function appendUpdateEncrypted(
+    store: CapacitorStorageAdapter,
+    feedKey: string,
+    key: CryptoKey,
+    u: Uint8Array
+) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, u));
+    const out = new Uint8Array(iv.length + ct.length);
+    out.set(iv, 0); out.set(ct, iv.length);
+    await store.appendChunk(feedKey, out);
+}
+
+export async function loadAllUpdatesEncrypted(
+    doc: Y.Doc,
+    store: CapacitorStorageAdapter,
+    feedKey: string,
+    key: CryptoKey,
+    from?: number
+) {
+    for await (const chunk of store.iterChunks(feedKey, { from })) {
+        const iv = chunk.slice(0, 12);
+        const ct = chunk.slice(12);
+        const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+        Y.applyUpdate(doc, new Uint8Array(pt));
+    }
+}
 
 /**
  * Store a sequence of Yjs updates in one encrypted blob using a simple
  * length prefix format: [len(4 LE)] [bytes] repeated.
  */
 export async function appendUpdate(
-    store: StorageAdapter,
+    store: CapacitorStorageAdapter,
     key: string,
     update: Uint8Array
 ) {
@@ -31,7 +76,7 @@ export async function appendUpdate(
 /** Read and apply every stored update into the given doc */
 export async function loadAllUpdates(
     doc: Y.Doc,
-    store: StorageAdapter,
+    store: CapacitorStorageAdapter,
     key: string
 ) {
     let buf: Uint8Array;

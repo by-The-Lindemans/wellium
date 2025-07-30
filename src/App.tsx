@@ -90,7 +90,7 @@ const AppShell: React.FC = () => (
   </IonApp>
 );
 
-function Splash({ duration = 1000, onDone }: { duration?: number; onDone: () => void }) {
+function Splash({ duration = 2000, onDone }: { duration?: number; onDone: () => void }) {
   const base = import.meta.env.BASE_URL || "/";
   const started = React.useRef(false);
   const [play, setPlay] = React.useState(false);
@@ -241,7 +241,7 @@ export default function App() {
 
   return (
     <>
-      {showSplash && <Splash duration={1000} onDone={() => setShowSplash(false)} />}
+      {showSplash && <Splash duration={2000} onDone={() => setShowSplash(false)} />}
       <ConnectionBanner />
       {hasSecret ? <AppShell /> : <PairingScreen />}
     </>
