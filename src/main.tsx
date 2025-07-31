@@ -3,6 +3,11 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { SyncProvider } from './sync/SyncProvider';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { KeyManager } from './crypto/KeyManager';
+
+(async () => {
+  await KeyManager.installPreferredKem({ requirePQ: true });
+})();
 
 if (typeof window !== 'undefined') {
   StatusBar.setStyle({ style: Style.Light }).catch(() => { });

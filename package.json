@@ -2,6 +2,7 @@
   "name": "wellium",
   "private": true,
   "version": "0.0.1",
+  "description": "",
   "type": "module",
   "scripts": {
     "yws": "PORT=9001 node node_modules/y-webrtc/bin/server.js",
@@ -27,12 +28,16 @@
     "@capacitor/status-bar": "7.0.1",
     "@ionic/react": "^8.5.0",
     "@ionic/react-router": "^8.5.0",
+    "@noble/curves": "^1.9.6",
+    "@noble/hashes": "^1.8.0",
     "@types/react-router": "^5.1.20",
     "@types/react-router-dom": "^5.3.3",
     "automerge": "^0.14.2",
     "capacitor-secure-storage-plugin": "^0.11.0",
     "ionicons": "^7.4.0",
     "jest-environment-jsdom": "^30.0.4",
+    "libsodium-wrappers": "^0.7.15",
+    "mlkem": "^2.3.1",
     "nanoid": "^5.1.5",
     "peerjs": "^1.5.5",
     "qrcode": "^1.5.4",
@@ -69,6 +74,5 @@
     "typescript-eslint": "^8.24.0",
     "vite": "~7.0.5",
     "vitest": "^3.2.4"
-  },
-  "description": "An Ionic project"
+  }
 }
