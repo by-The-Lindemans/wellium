@@ -37,6 +37,13 @@ export async function deriveKeysFromSecret(secretB64: string): Promise<{ aes: Cr
     return { aes, tag };
 }
 
+export async function kyberFingerprintB64url(pkB64: string): Promise<string> {
+    const pk = b64urlToBytes(pkB64);
+    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', pk));
+    // take first 10 bytes for a short code users can compare visually if needed
+    return bytesToB64url(digest.slice(0, 10));
+}
+
 /* ========================= KEM interface + registry ======================= */
 export type KemCapsule = Uint8Array;
 export type KemSharedSecret = Uint8Array;
@@ -57,6 +64,11 @@ class KemRegistry {
     }
 }
 const kemRegistry = new KemRegistry();
+
+export const kem = {
+    /** returns the currently-registered KemProvider (throws if none) */
+    get: () => kemRegistry.get()
+};
 
 // NEW: ensure the Kyber provider is loaded (and required everywhere)
 let kemInitPromise: Promise<void> | null = null;

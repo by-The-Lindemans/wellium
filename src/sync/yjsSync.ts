@@ -16,38 +16,34 @@ export async function roomTagFromSecretB64(secretB64: string): Promise<string> {
 }
 
 export type YSync = {
-    doc: Y.Doc;
-    data: Y.Map<any>;
-    provider: WebrtcProvider;
+    doc: Y.Doc;                // REAL doc you use in the app
+    provider: WebrtcProvider;  // provider built with a dummy doc
     stop: () => void;
 };
 
 export async function startYSync(opts: {
-    pairingSecret: Uint8Array;     // 32 random bytes from QR
+    room: string;
     signalingUrls: string[];
     autoConnect?: boolean;
-    maxConns?: number;
 }): Promise<YSync> {
-    const { pairingSecret, signalingUrls, autoConnect = true, maxConns } = opts;
+    const { room, signalingUrls, autoConnect = true } = opts;
 
-    const room = await sha256Base64Url(pairingSecret);
-    const doc = new Y.Doc();
-    const data = doc.getMap('health');
+    const realDoc = new Y.Doc();
+    const dummyDoc = new Y.Doc();            // <- prevents plaintext sync
 
-    const provider = new WebrtcProvider(room, doc, {
+    const provider = new WebrtcProvider(room, dummyDoc, {
         signaling: signalingUrls,
-        password: pairingSecret,  // hides SDP metadata
-        maxConns
+        // DON'T pass password here; we encrypt at app layer
     });
 
     if (!autoConnect) provider.disconnect();
 
     const stop = () => {
         try { provider.disconnect(); provider.destroy(); } catch { }
-        try { doc.destroy(); } catch { }
+        try { realDoc.destroy(); dummyDoc.destroy(); } catch { }
     };
 
-    return { doc, data, provider, stop };
+    return { doc: realDoc, provider, stop };
 }
 
 export function onLocalUpdate(doc: Y.Doc, cb: (update: Uint8Array) => void) {

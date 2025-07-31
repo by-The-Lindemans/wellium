@@ -1,30 +1,42 @@
+// electron/main.cjs
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
-const DEV_URL = process.env.APP_URL || 'https://relay.localhost:8100'; // Ionic dev server
-const IGNORE_CERT = process.env.IGNORE_CERT_ERRORS === '1';            // for dev self‑signed
+const DEV_URL = process.env.APP_URL || 'http://relay.localhost:8100';
 
-// Allow autoplay in Electron (splash sound)
+// allow splash-screen audio without gesture
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
-
-// (optional) accept self-signed dev certs. DO NOT use in production.
-if (IGNORE_CERT) {
-    app.commandLine.appendSwitch('ignore-certificate-errors');
-}
 
 function createWindow() {
     const win = new BrowserWindow({
         width: 1100,
         height: 800,
-        webPreferences: {
-            contextIsolation: true,
-            nodeIntegration: false,
-            autoplayPolicy: 'no-user-gesture-required'
-        }
+        show: false,                            // reveal only after first paint
+        webPreferences: { contextIsolation: true, nodeIntegration: false }
     });
 
-    win.loadURL(DEV_URL);
-    // win.webContents.openDevTools({ mode: 'detach' }); // if you want devtools
+    /** try to load Vite dev server, retry until it’s ready */
+    const tryLoad = async (attempt = 0) => {
+        try {
+            await win.loadURL(DEV_URL);
+        } catch (err) {
+            if (attempt < 50) {                   // ~10 s max
+                setTimeout(() => tryLoad(attempt + 1), 200);
+                return;
+            }
+            console.error('[electron] could not connect to dev server:', err);
+            win.loadFile(path.join(__dirname, 'app', 'index.html')); // fallback prod build
+        }
+    };
+
+    // automatic retry when Vite isn’t listening yet
+    win.webContents.on('did-fail-load', (_evt, code, desc) => {
+        console.log(`[electron] did-fail-load (${code}) ${desc} – retry`);
+        setTimeout(() => tryLoad(), 200);
+    });
+
+    win.once('ready-to-show', () => win.show());
+    tryLoad();                                // first attempt
 }
 
 app.whenReady().then(() => {

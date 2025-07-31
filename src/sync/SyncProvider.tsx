@@ -4,6 +4,9 @@ import { startYSync } from "./yjsSync";
 import { appendUpdateEncrypted, loadAllUpdatesEncrypted } from "./yjsStorage";
 import { CapacitorStorageAdapter } from "../adapters/storageAdapterCapacitor";
 import { deriveKeysFromSecret } from "../crypto/KeyManager";
+import { EncryptedYTransport } from './EncryptedYTransport';
+import { IdentityStore } from '../crypto/identity';
+import { KeyManager } from '../crypto/KeyManager';
 
 type Status = "idle" | "hydrating" | "connecting" | "connected" | "error";
 
@@ -60,16 +63,46 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
 
         // hydrate from local encrypted feed, then persist subsequent updates
         await loadAllUpdatesEncrypted(svc.doc, storage, feedKey, keys.aes);
-        const appendEnc = appendUpdateEncrypted(storage, feedKey, keys.aes);
-        svc.doc.on("update", (u: Uint8Array) => { void appendEnc(u); });
 
-        setYDoc(svc.doc);
-        setYMap(svc.data);
+        const tag = await sha256Base64Url(secretBytes);
+        const room = tag.slice(0, 32); // or your existing room id
+
+        // ... loadAllUpdates into svc.doc, attach appendUpdate listeners, etc.
+
+        const idStore = new IdentityStore();
+        const peer = await idStore.loadPeer(room);
+        const theirKemPkB64 = peer?.kemPkB64; // can be undefined
+
+        if (!peer) {
+            // If this is first pairing on this device, you'll have saved peer in pairing step.
+            // For now: throw or show UX telling user to pair (store peer first).
+            throw new Error('No peer identity stored for this room');
+
+        }
+        const km = new KeyManager();
+        // Ensure local Kyber keys exist (you already do this in your tests)
+        await km.getLocalKemPublicKeyB64();  // creates pk/sk if missing
+        // Load local secret & remote pk from storage blobs
+        const mySkBlob = await (km as any).storage.loadBlob(`wellium/kem/${(KeyManager as any).prototype.constructor.name ?? 'ML-KEM-1024'}/sk`).catch(() => undefined);
+        if (!mySkBlob) throw new Error('No local Kyber secret');
+        const myKemSkB64 = new TextDecoder().decode(mySkBlob);
+
+        // ml-kem provider (you already load it in KeyManager and set as default)
+        const kem = (KeyManager as any).kemRegistry?.get?.() ?? { name: 'ML-KEM-1024' }; // or import from wherever you register it
+
+        // Start encrypted bridge
+        const enc = new EncryptedYTransport(
+            svc.provider as any,  // dummy doc provider
+            svc.doc,              // real doc
+            kem,
+            myKemSkB64,
+            peer.kemPkB64,
+            theirKemPkB64
+        );
+        enc.start();
 
         setStatus("connecting");
         svc.provider.connect();
-
-        // y-webrtc has limited status; assume connected after a brief tick
         setTimeout(() => setStatus("connected"), 300);
     }
 

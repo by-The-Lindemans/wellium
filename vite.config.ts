@@ -4,12 +4,6 @@ import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { spawn } from 'child_process';
 
-// mkcert cert for relay.localhost
-const httpsOptions = {
-  key: readFileSync('certs/relay.localhost-key.pem'),
-  cert: readFileSync('certs/relay.localhost.pem')
-};
-
 // find the y-webrtc signaling server script without using package exports
 function findYwsScript(): string {
   const candidates = [
@@ -38,6 +32,17 @@ export default defineConfig({
       }
     }
   ],
+  server: {
+    host: 'relay.localhost',
+    port: 8100,          //  no https: {}  ⟵ remove it
+    proxy: {
+      '/yws': {
+        target: 'ws://127.0.0.1:9001',
+        ws: true,
+        changeOrigin: true
+      }
+    }
+  },
   resolve: {
     alias: {
       adapters: resolve(__dirname, 'src/adapters'),
@@ -45,18 +50,8 @@ export default defineConfig({
       sync: resolve(__dirname, 'src/sync')
     }
   },
-  server: {
-    https: httpsOptions,
-    host: 'relay.localhost',
-    port: 8100,
-    proxy: {
-      '/yws': {
-        target: 'ws://127.0.0.1:9001',
-        ws: true,
-        changeOrigin: true,
-        secure: false
-      }
-    }
-  },
-  envPrefix: 'VITE_'
+  envPrefix: 'VITE_',
+  optimizeDeps: {
+    entries: ['./index.html']
+  }
 });

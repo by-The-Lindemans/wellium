@@ -1,7 +1,5 @@
-// Kyber (ML-KEM) provider that adapts `mlkem` to your KemProvider interface.
 import type { KemProvider, KemCapsule, KemSharedSecret } from "../KeyManager";
 
-// We use dynamic import so Jest/Node don't need extra ESM config.
 export async function loadKyberProvider(): Promise<KemProvider> {
     const mod = await import("mlkem");
     const { MlKem1024 } = mod;

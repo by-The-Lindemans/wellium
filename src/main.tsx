@@ -4,8 +4,12 @@ import App from './App';
 import { SyncProvider } from './sync/SyncProvider';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { KeyManager } from './crypto/KeyManager';
+import { loadKyberProvider } from './crypto/pq/loadKyber';
+
 
 (async () => {
+  const kem = await loadKyberProvider();
+  if (kem) KeyManager.useKemProvider(kem);
   await KeyManager.installPreferredKem({ requirePQ: true });
 })();
 
