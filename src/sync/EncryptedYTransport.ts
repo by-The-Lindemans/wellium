@@ -1,48 +1,54 @@
-// src/sync/EncryptedYTransport.ts
+// src/sync/EncryptedYTransport.ts (mesh‑aware)
 import * as Y from 'yjs';
 import { PeerSession, type WireMsg } from '../crypto/session';
-import { b64urlToBytes, bytesToB64url } from '../crypto/KeyManager';
+import { b64urlToBytes, bytesToB64url, KeyManager } from '../crypto/KeyManager';
 import type { KemProvider } from '../crypto/KeyManager';
 
-type AnyProvider = any;
+/* ------------------------------------------------------------------
+ * Extra message kind for initial bootstrap
+ * t = "b"  –  payload is base64url invitation produced by
+ *              KeyManager.exportInvitationForPeer().
+ * ------------------------------------------------------------------ */
+const MSG_BOOTSTRAP = 'b';
 
-const ROTATE_EVERY_UPDATES = 500;     // rotate after 500 sealed updates
-const ROTATE_EVERY_MS = 5 * 60_000;   // or 5 minutes, whichever comes first
+const ROTATE_EVERY_UPDATES = 500;
+const ROTATE_EVERY_MS = 5 * 60_000;
 
-/**
- * Bridges real Y.Doc to peers by:
- *  - blocking y-webrtc's default plaintext sync (we give it a dummy doc)
- *  - discovering its peer connections
- *  - running a Kyber session handshake per peer
- *  - sealing/opening Y updates via AES-GCM session keys
- */
+/* ------------------------------------------------------------------
+ * This bridge wraps y-webrtc with per‑peer ML-KEM + AES‑GCM and now
+ * pushes a one‑shot bootstrap payload so the camera‑less device does
+ * not need to copy JSON manually.
+ * ------------------------------------------------------------------ */
 export class EncryptedYTransport {
     private peers = new Map<string, {
-        peer: any,                // SimplePeer instance
-        session: PeerSession,     // KEM/HKDF/AES wrapper
-        established: boolean,
-        sealedCount: number,
-        rotateTimer?: any
+        peer: any;
+        session: PeerSession;
+        established: boolean;
+        sealedCount: number;
+        rotateTimer?: any;
     }>();
-
-    private onDocUpdate = (update: Uint8Array) => this.broadcastUpdate(update);
+    private onDocUpdate = (u: Uint8Array) => this.broadcastUpdate(u);
+    private bootstrapSent = false;
 
     constructor(
-        private readonly provider: AnyProvider,      // WebrtcProvider (with dummy doc inside)
-        private readonly realDoc: Y.Doc,             // the doc we actually sync
-        private readonly kem: KemProvider,           // ML-KEM provider
-        private readonly myKemSkB64: string,         // our static SK (b64)
-        private readonly theirKemPkB64: string       // their static PK (b64) from IdentityStore
+        private readonly provider: any,             // WebrtcProvider (dummy doc)
+        private readonly realDoc: Y.Doc,            // actual Y doc
+        private readonly kem: KemProvider,          // ML‑KEM provider
+        private readonly myKemSkB64: string,        // our static SK (b64)
+        private readonly theirKemPkB64: string,     // their static PK (b64)
+        /* ---- new params ---- */
+        private readonly km: KeyManager,
+        private readonly pairingSecretB64: string,
+        private readonly isBootstrapSender: boolean,
+        private readonly onReady?: () => void,
     ) { }
 
-    /** Start: attach doc listener and watch peers */
+    /* ---------------- lifecycle ---------------- */
     start() {
         this.realDoc.on('update', this.onDocUpdate);
         this.hookExistingPeers();
         this.observePeerChanges();
     }
-
-
     stop() {
         this.realDoc.off('update', this.onDocUpdate);
         for (const e of this.peers.values()) {
@@ -52,119 +58,98 @@ export class EncryptedYTransport {
         this.peers.clear();
     }
 
-    /** Send our Y update to all peers (if session ready) */
+    /* ---------------- outbound ---------------- */
     private async broadcastUpdate(update: Uint8Array) {
         for (const [id, e] of this.peers.entries()) {
             if (!e.established) continue;
             try {
                 const msg = await e.session.sealUpdate(update);
                 e.peer.send(JSON.stringify(msg));
-                // rotation counters
                 e.sealedCount++;
                 if (e.sealedCount >= ROTATE_EVERY_UPDATES) {
-                    e.sealedCount = 0;
-                    this.rotatePeer(id).catch(() => { });
+                    e.sealedCount = 0; this.rotatePeer(id).catch(() => { });
                 }
-            } catch {
-                // ignore send failures
-            }
+            } catch {/* ignore */ }
         }
     }
 
     private scheduleRotate(id: string) {
-        const e = this.peers.get(id);
-        if (!e) return;
+        const e = this.peers.get(id); if (!e) return;
         if (e.rotateTimer) clearTimeout(e.rotateTimer);
         e.rotateTimer = setTimeout(() => this.rotatePeer(id).catch(() => { }), ROTATE_EVERY_MS);
     }
 
-    /** Initiator sends another hs2 capsule to rekey */
     private async rotatePeer(id: string) {
-        const e = this.peers.get(id);
-        if (!e || !e.established) return;
+        const e = this.peers.get(id); if (!e || !e.established) return;
         try {
             const hs2 = await e.session.initiatorEncap();
             e.peer.send(JSON.stringify({ ...hs2, from: 'me', to: id }));
-            // re-arm time-based rotation
             this.scheduleRotate(id);
-        } catch {
-            // ignore
-        }
+        } catch { }
     }
 
-    /** Handle any incoming data for a peer (JSON) */
+    /* ---------------- inbound ---------------- */
     private onData = async (raw: ArrayBuffer | Uint8Array | string) => {
         try {
             const text = typeof raw === 'string' ? raw : new TextDecoder().decode(raw as ArrayBuffer);
-            const msg = JSON.parse(text) as WireMsg;
-
-            if (msg.t === 'hs1') {
-                // We keep hs1 as a no-op in this simple flow
+            const msg = JSON.parse(text) as WireMsg | { t: string, p: string };
+            if ((msg as any).t === MSG_BOOTSTRAP) {
+                const payloadB64 = (msg as any).p as string;
+                const secret = await this.km.importInvitationFromPeer(payloadB64);
+                localStorage.setItem('welliuᴍ/pairing-secret', secret);
+                this.onReady?.();
                 return;
             }
-
+            /* existing hs/u flow */
+            if (msg.t === 'hs1') return; // noop
             if (msg.t === 'hs2') {
-                // Responder decapsulates for both initial handshake and rekey
                 for (const [id, e] of this.peers.entries()) {
-                    if (e.peer && e.peer._channel && e.peer._channel.readyState === 'open') {
-                        await e.session.responderDecap(msg);
-                        e.established = true;
-                        e.sealedCount = 0;
-                        this.scheduleRotate(id);
-                    }
+                    await e.session.responderDecap(msg);
+                    e.established = true; e.sealedCount = 0; this.scheduleRotate(id);
+                    // after first establishment we may need to send bootstrap
+                    void this.maybeSendBootstrap(e);
                 }
                 return;
             }
-
             if (msg.t === 'u') {
-                // Decrypt and apply Y update
-                for (const e of this.peers.values()) {
-                    if (!e.established) continue;
+                for (const e of this.peers.values()) if (e.established) {
                     const update = await e.session.openUpdate(msg);
-                    Y.applyUpdate(this.realDoc, update);
-                    break;
+                    Y.applyUpdate(this.realDoc, update); break;
                 }
                 return;
             }
-        } catch {
-            // ignore parse/decrypt errors
-        }
+        } catch {/* ignore */ }
     };
 
-    /** Find a peer entry by id; fallback: first established */
-    private entryFromFromId(_from: string) {
-        // you can augment with real id routing if you encode peerIds in hs messages
-        for (const [id, e] of this.peers) return e;
-        return undefined;
-    }
-    private entryFromAny() {
-        for (const e of this.peers.values()) if (e.established) return e;
-        return undefined;
+    /* ---------------- bootstrap helper ---------------- */
+    private async maybeSendBootstrap(e: { peer: any; session: PeerSession; established: boolean }) {
+        if (!this.isBootstrapSender || this.bootstrapSent || !e.established) return;
+        try {
+            const invitation = await this.km.exportInvitationForPeer(this.theirKemPkB64, this.pairingSecretB64);
+            const pt = new TextEncoder().encode(invitation);
+            const ct = await e.session.seal(pt);
+            e.peer.send(JSON.stringify({ t: MSG_BOOTSTRAP, p: bytesToB64url(ct) }));
+            this.bootstrapSent = true;
+        } catch {/* ignore */ }
     }
 
-    /** Attach to already-connected peers (provider internals) */
+    /* ---------------- peer discovery ---------------- */
     private hookExistingPeers() {
-        const conns: Map<string, any> =
-            (this.provider as any).webrtcConns || (this.provider as any).conns || new Map();
-
+        const conns: Map<string, any> = (this.provider as any).webrtcConns || (this.provider as any).conns || new Map();
         for (const [peerId, conn] of conns) {
             const peer = conn.peer || conn;
             if (this.peers.has(peerId)) continue;
-
             const session = new PeerSession(this.kem, this.myKemSkB64, this.theirKemPkB64);
             const entry = { peer, session, established: false, sealedCount: 0, rotateTimer: undefined as any };
             this.peers.set(peerId, entry);
-
             peer.on('data', this.onData);
-
-            // Initial handshake: initiator sends hs1 then hs2
+            // initial handshake
             try {
-                const hs1 = session.makeHs1('me', peerId);
-                peer.send(JSON.stringify(hs1));
+                const hs1 = session.makeHs1('me', peerId); peer.send(JSON.stringify(hs1));
                 session.initiatorEncap().then(hs2 => {
                     peer.send(JSON.stringify({ ...hs2, from: 'me', to: peerId }));
-                    entry.established = true;
-                    this.scheduleRotate(peerId);
+                    entry.established = true; this.scheduleRotate(peerId);
+                    void this.maybeSendBootstrap(entry);
                 }).catch(() => { });
             } catch { }
         }

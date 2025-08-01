@@ -193,6 +193,29 @@ export class KeyManager {
         this.cached = key;
     }
 
+    async exportInvitationForPeer(
+        peerPublicKeyB64: string,
+        pairingSecretB64: string,
+    ): Promise<string> {
+        const wrappedMaster = await this.exportWrappedForPeer(peerPublicKeyB64);
+        const payload = {
+            v: 3,
+            pairingSecret: pairingSecretB64,
+            wrappedMaster,
+        };
+        return bytesToB64url(new TextEncoder().encode(JSON.stringify(payload)));
+    }
+
+    async importInvitationFromPeer(payloadB64: string): Promise<string> {
+        const raw = new TextDecoder().decode(b64urlToBytes(payloadB64));
+        const { v, pairingSecret, wrappedMaster } = JSON.parse(raw);
+        if (v !== 3 || !pairingSecret || !wrappedMaster) {
+            throw new Error('bad invitation payload');
+        }
+        await this.importWrappedFromPeer(wrappedMaster);
+        return pairingSecret;
+    }
+
     /* ----------------------- KEM (pluggable) ---------------------- */
     static useKemProvider(p: KemProvider) { kemRegistry.use(p); }
 

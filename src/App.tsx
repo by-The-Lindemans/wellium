@@ -48,7 +48,7 @@ import '@ionic/react/css/display.css';
 import './theme/variables.css';
 
 import React from "react";
-import PairingScreen from "./ui/PairingScreen";
+import JoinPairingScreen from "./ui/JoinPairingScreen";
 import ConnectionBanner from "./ui/ConnectionBanner";
 
 setupIonicReact();
@@ -329,12 +329,14 @@ export default function App() {
   const hasSecret = (() => {
     try { return !!localStorage.getItem("wellium/pairing-secret"); } catch { return false; }
   })();
+  const [skipPairing, setSkipPairing] = React.useState(false);
 
   return (
     <>
       {showSplash && <Splash duration={2000} onDone={() => setShowSplash(false)} />}
       <ConnectionBanner />
-      {hasSecret ? <AppShell /> : <PairingScreen />}
-    </>
+            {hasSecret || skipPairing
+              ? <AppShell />
+              : <JoinPairingScreen onFirstDevice={() => setSkipPairing(true)} />}    </>
   );
 }

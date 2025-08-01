@@ -5,12 +5,20 @@ import {
     IonButton, IonTextarea, IonItem, IonList, IonText
 } from '@ionic/react';
 import QRCode from 'qrcode';
+import { BarcodeScanner } from '@capacitor/barcode-scanner';
 
 import { KeyManager } from '../crypto/KeyManager';
 import { IdentityStore, kyberFingerprintB64url } from '../crypto/identity';
 import { generatePairingSecret } from '../sync/SyncProvider';
 import { CapacitorStorageAdapter } from '../adapters/storageAdapterCapacitor';
 import { sha256Base64Url } from '../sync/yjsSync';
+
+/**
+ * This screen can be reached from two places:
+ *  - onboarding flow: user is adding *this* device to an existing cluster (only JOIN allowed)
+ *  - settings → Add a device: user wants to show a QR so a *second* device can join (only HOST allowed)
+ */
+export type Origin = 'onboarding' | 'settings';
 
 const SECRET_KEY = 'welliuᴍ/pairing-secret';
 
@@ -20,55 +28,42 @@ function b64urlToBytes(s: string): Uint8Array {
     return new Uint8Array([...raw].map(c => c.charCodeAt(0)));
 }
 
+// Utility: keep a square that is 90% of the short screen edge and updates on resize
+function useSquareSide(pct = 0.9) {
+    const [side, setSide] = React.useState(() =>
+        Math.floor(Math.min(window.innerWidth, window.innerHeight) * pct)
+    );
+    React.useEffect(() => {
+        function handle() {
+            setSide(Math.floor(Math.min(window.innerWidth, window.innerHeight) * pct));
+        }
+        window.addEventListener('resize', handle);
+        return () => window.removeEventListener('resize', handle);
+    }, [pct]);
+    return side;
+}
+
 type Mode = 'join' | 'host';
 
 const PairingScreen: React.FC<{
-    // Optional: where to send the user if they tap “first device”
+    origin: Origin;
     onContinueOnboarding?: () => void;
-}> = ({ onContinueOnboarding }) => {
-    const [mode, setMode] = React.useState<Mode>('join'); // default first-screen: Join
-    const [qrDataUrl, setQrDataUrl] = React.useState<string | null>(null);
+}> = ({ origin, onContinueOnboarding }) => {
+    // ------------------------------------------------------------
+    //  Mode handling – only one mode is allowed based on origin
+    // ------------------------------------------------------------
+    const allowedModes: readonly Mode[] = origin === 'settings' ? ['host'] : ['join'];
+    const [mode, setMode] = React.useState<Mode>(allowedModes[0]);
+
+    // When only one mode is possible, hide the segment selector
+    const showModeSelector = allowedModes.length === 2;
+
+    // ------------------------------------------------------------
+    //  Host state
+    // ------------------------------------------------------------
+    const side = useSquareSide();
     const qrCanvasRef = React.useRef<HTMLCanvasElement>(null);
-
-    // -------------------- JOIN MODE --------------------
-
-    const [scanText, setScanText] = React.useState<string>('');
-    const [joinBusy, setJoinBusy] = React.useState(false);
-    const [joinMsg, setJoinMsg] = React.useState<string | null>(null);
-
-    async function handleJoinFromPayload(payload: string) {
-        setJoinBusy(true);
-        setJoinMsg(null);
-        try {
-            const o = JSON.parse(payload);
-            if (o.v !== 1 || !o.pairingSecret || !o.kemPk || !o.kemPkFp) {
-                throw new Error('Invalid QR payload');
-            }
-
-            // Confirm fingerprint (safety check)
-            const fp = await kyberFingerprintB64url(o.kemPk);
-            if (fp !== o.kemPkFp) throw new Error('Peer fingerprint mismatch');
-
-            // Save the pairing secret
-            localStorage.setItem(SECRET_KEY, o.pairingSecret);
-
-            // Derive the identity namespace (roomTag) from the secret
-            const roomTag = (await sha256Base64Url(b64urlToBytes(o.pairingSecret))).slice(0, 16);
-
-            // Store peer identity so this device can initiate
-            const idStore = new IdentityStore(new CapacitorStorageAdapter());
-            await idStore.savePeer(roomTag, { kemPkB64: o.kemPk, fingerprintB64: fp });
-
-            setJoinMsg('Paired. You can close this screen; syncing will start momentarily.');
-        } catch (e: any) {
-            setJoinMsg(e?.message ?? String(e));
-        } finally {
-            setJoinBusy(false);
-        }
-    }
-
-    // -------------------- HOST MODE --------------------
-
+    const [qrDataUrl, setQrDataUrl] = React.useState<string | null>(null);
     const [hostBusy, setHostBusy] = React.useState(false);
     const [hostMsg, setHostMsg] = React.useState<string | null>(null);
 
@@ -77,25 +72,19 @@ const PairingScreen: React.FC<{
         setHostMsg(null);
         setQrDataUrl(null);
         try {
-            // Ensure this device has a Kyber keypair and get public key
             const km = new KeyManager();
             const kemPk = await km.getLocalKemPublicKeyB64();
             const kemPkFp = await kyberFingerprintB64url(kemPk);
-
-            // New random secret for the cluster
             const pairingSecret = generatePairingSecret();
-
-            // Host should also store the secret so it can join the cluster
             localStorage.setItem(SECRET_KEY, pairingSecret);
 
             const payload = JSON.stringify({ v: 1, pairingSecret, kemPk, kemPkFp });
 
-            // Render QR
             if (qrCanvasRef.current) {
                 await QRCode.toCanvas(qrCanvasRef.current, payload, {
                     errorCorrectionLevel: 'M',
                     margin: 2,
-                    scale: 6
+                    width: side,
                 });
                 setQrDataUrl(qrCanvasRef.current.toDataURL());
             }
@@ -107,14 +96,70 @@ const PairingScreen: React.FC<{
         }
     }
 
-    // Generate QR immediately when switching to Host
+    // regenerate QR when side changes (orientation) or on mode entry
     React.useEffect(() => {
         if (mode === 'host') void generateHostQr();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [mode]);
+    }, [mode, side]);
 
-    // -------------------- UI --------------------
+    // ------------------------------------------------------------
+    //  Join state – camera with fallback to paste
+    // ------------------------------------------------------------
+    const [scanText, setScanText] = React.useState('');
+    const [joinBusy, setJoinBusy] = React.useState(false);
+    const [joinMsg, setJoinMsg] = React.useState<string | null>(null);
 
+    const [scanFailures, setScanFailures] = React.useState(0);
+    const [cameraAvailable, setCameraAvailable] = React.useState(true);
+
+    async function openScanner() {
+        try {
+            await BarcodeScanner.checkPermission({ force: true });
+            const result = await BarcodeScanner.startScan();
+            if (result.hasContent) {
+                await handleJoinFromPayload(result.content);
+            } else {
+                throw new Error('No QR detected');
+            }
+        } catch (err: any) {
+            const unimpl = err?.message?.includes('Unimplemented');
+            setScanFailures(n => n + 1);
+            if (unimpl || scanFailures + 1 >= 3) {
+                setCameraAvailable(false); // fallback to paste UI
+            }
+        } finally {
+            // Stop camera if it was started
+            await BarcodeScanner.stopScan();
+        }
+    }
+
+    async function handleJoinFromPayload(payload: string) {
+        setJoinBusy(true);
+        setJoinMsg(null);
+        try {
+            const o = JSON.parse(payload);
+            if (o.v !== 1 || !o.pairingSecret || !o.kemPk || !o.kemPkFp) {
+                throw new Error('Invalid QR payload');
+            }
+            const fp = await kyberFingerprintB64url(o.kemPk);
+            if (fp !== o.kemPkFp) throw new Error('Peer fingerprint mismatch');
+
+            localStorage.setItem(SECRET_KEY, o.pairingSecret);
+            const roomTag = (await sha256Base64Url(b64urlToBytes(o.pairingSecret))).slice(0, 16);
+            const idStore = new IdentityStore(new CapacitorStorageAdapter());
+            await idStore.savePeer(roomTag, { kemPkB64: o.kemPk, fingerprintB64: fp });
+
+            setJoinMsg('Paired. You can close this screen; syncing will start momentarily.');
+        } catch (e: any) {
+            setJoinMsg(e?.message ?? String(e));
+        } finally {
+            setJoinBusy(false);
+        }
+    }
+
+    // ------------------------------------------------------------
+    //  UI
+    // ------------------------------------------------------------
     return (
         <IonPage>
             <IonHeader>
@@ -124,17 +169,19 @@ const PairingScreen: React.FC<{
             </IonHeader>
 
             <IonContent className="ion-padding">
+                {/* Mode selector only if both modes are possible */}
+                {showModeSelector && (
+                    <IonSegment value={mode} onIonChange={e => setMode(e.detail.value as Mode)}>
+                        <IonSegmentButton value="join">
+                            <IonLabel>Join</IonLabel>
+                        </IonSegmentButton>
+                        <IonSegmentButton value="host">
+                            <IonLabel>Host</IonLabel>
+                        </IonSegmentButton>
+                    </IonSegment>
+                )}
 
-                {/* Mode selector */}
-                <IonSegment value={mode} onIonChange={e => setMode(e.detail.value as Mode)}>
-                    <IonSegmentButton value="join">
-                        <IonLabel>Join</IonLabel>
-                    </IonSegmentButton>
-                    <IonSegmentButton value="host">
-                        <IonLabel>Host</IonLabel>
-                    </IonSegmentButton>
-                </IonSegment>
-
+                {/* ---------------- JOIN ---------------- */}
                 {mode === 'join' && (
                     <>
                         <IonList>
@@ -142,35 +189,46 @@ const PairingScreen: React.FC<{
                                 <IonText>
                                     <p style={{ marginTop: 12 }}>
                                         <strong>Adding this device to an existing welliuᴍ setup?</strong><br />
-                                        Open welliuᴍ on your primary device and go to <em>Settings → Add a device</em>, then scan the QR it shows using this screen. If you can’t scan, paste the QR payload below.
+                                        Open welliuᴍ on your primary device and go to <em>Settings → Add a device</em>, then scan the QR it shows using this screen.
                                     </p>
                                 </IonText>
                             </IonItem>
-
-                            <IonItem lines="none">
-                                <IonTextarea
-                                    value={scanText}
-                                    autoGrow
-                                    rows={6}
-                                    label="Paste QR payload (JSON)"
-                                    labelPlacement="stacked"
-                                    placeholder='{"v":1,"pairingSecret":"...","kemPk":"...","kemPkFp":"..."}'
-                                    onIonChange={e => setScanText(e.detail.value ?? '')}
-                                />
-                            </IonItem>
                         </IonList>
 
-                        <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-                            <IonButton
-                                onClick={() => handleJoinFromPayload(scanText)}
-                                disabled={joinBusy || !scanText.trim()}
-                            >
-                                Pair from pasted payload
-                            </IonButton>
-
-                            {/* Optional: add a Scan button if/when you add a Capacitor barcode plugin */}
-                            {/* <IonButton color="medium" onClick={openScanner}>Scan QR</IonButton> */}
-                        </div>
+                        {cameraAvailable ? (
+                            <>
+                                <IonButton onClick={openScanner} disabled={joinBusy} expand="block" style={{ marginTop: 12 }}>
+                                    Scan QR
+                                </IonButton>
+                                {scanFailures > 0 && (
+                                    <p style={{ marginTop: 12 }}><IonText color="medium">Scan failed; you can try again or wait to paste the code.</IonText></p>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <IonList>
+                                    <IonItem lines="none">
+                                        <IonTextarea
+                                            value={scanText}
+                                            autoGrow
+                                            rows={6}
+                                            label="Paste QR payload (JSON)"
+                                            labelPlacement="stacked"
+                                            placeholder='{"v":1,"pairingSecret":"...","kemPk":"...","kemPkFp":"..."}'
+                                            onIonChange={e => setScanText(e.detail.value ?? '')}
+                                        />
+                                    </IonItem>
+                                </IonList>
+                                <IonButton
+                                    onClick={() => handleJoinFromPayload(scanText)}
+                                    disabled={joinBusy || !scanText.trim()}
+                                    style={{ marginTop: 12 }}
+                                    expand="block"
+                                >
+                                    Pair from pasted payload
+                                </IonButton>
+                            </>
+                        )}
 
                         {joinMsg && (
                             <p style={{ marginTop: 12 }}>
@@ -180,29 +238,28 @@ const PairingScreen: React.FC<{
                             </p>
                         )}
 
-                        <div style={{ marginTop: 28 }}>
-                            <IonText>
-                                <p>
-                                    <strong>New here?</strong> If this is your first welliuᴍ device, you don’t need to scan anything.
-                                </p>
-                            </IonText>
-                            <IonButton
-                                fill="outline"
-                                onClick={() => {
-                                    if (onContinueOnboarding) onContinueOnboarding();
-                                    else {
-                                        // Fallback: go to your first-run/onboarding route or main app
-                                        // e.g., useHistory().replace('/onboarding');
-                                        window.location.hash = '#/tab1';
-                                    }
-                                }}
-                            >
-                                This is my first welliuᴍ device
-                            </IonButton>
-                        </div>
+                        {origin === 'onboarding' && (
+                            <div style={{ marginTop: 28 }}>
+                                <IonText>
+                                    <p>
+                                        <strong>New here?</strong> If this is your first welliuᴍ device, you don’t need to scan anything.
+                                    </p>
+                                </IonText>
+                                <IonButton
+                                    fill="outline"
+                                    onClick={() => {
+                                        if (onContinueOnboarding) onContinueOnboarding();
+                                        else window.location.hash = '#/tab1';
+                                    }}
+                                >
+                                    This is my first welliuᴍ device
+                                </IonButton>
+                            </div>
+                        )}
                     </>
                 )}
 
+                {/* ---------------- HOST ---------------- */}
                 {mode === 'host' && (
                     <>
                         <IonList>
@@ -217,21 +274,15 @@ const PairingScreen: React.FC<{
                         </IonList>
 
                         <div style={{ display: 'grid', placeItems: 'center', marginTop: 12 }}>
-                            <canvas ref={qrCanvasRef} />
+                            <canvas ref={qrCanvasRef} style={{ width: side, height: side }} />
                             {qrDataUrl && (
-                                <img
-                                    src={qrDataUrl}
-                                    alt="pairing qr"
-                                    style={{ marginTop: 12, width: 256, height: 256 }}
-                                />
+                                <img src={qrDataUrl} alt="pairing qr" style={{ marginTop: 12, width: side, height: side }} />
                             )}
                         </div>
 
-                        <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-                            <IonButton onClick={() => generateHostQr()} disabled={hostBusy}>
-                                Regenerate
-                            </IonButton>
-                        </div>
+                        <IonButton onClick={generateHostQr} disabled={hostBusy} expand="block" style={{ marginTop: 16 }}>
+                            Regenerate
+                        </IonButton>
 
                         {hostMsg && (
                             <p style={{ marginTop: 12 }}>
