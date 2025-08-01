@@ -1,0 +1,88 @@
+/* ----------------------------------------
+   GLOBAL LAYOUT PRESET  –  wellium edition
+   ---------------------------------------- */
+
+/* Always occupy the whole viewport */
+html,
+body,
+ion-app,
+ion-router-outlet,
+ion-page {
+    block-size: 100%;
+    inline-size: 100%;
+    margin: 0;
+}
+
+/* ----- HEADERS ----- */
+/* Centre <ion-title> on all platforms (not just iOS) */
+ion-title {
+    text-align: center;
+    --padding-start: 0;
+    --padding-end: 0;
+}
+
+ion-toolbar {
+    --justify-content: center;
+}
+
+/* ----- DEFAULT <ion-content> BEHAVIOUR ----- */
+ion-content {
+    /* Remove Ionic’s automatic scrolling */
+    overflow: hidden;
+
+    /* Flexbox centring in both axes */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    /* Centre text unless a child overrides it */
+    text-align: center;
+    --padding-start: 0;
+    --padding-end: 0;
+}
+
+/*  Center any text-only IonItem (lines="none")  */
+ion-item[lines="none"] {
+    /* stretch the “inner” part across the full row */
+    --inner-padding-start: 0;
+    --inner-padding-end: 0;
+    justify-content: center;
+    /* put inner slot in the middle */
+}
+
+ion-item[lines="none"] ion-text,
+ion-item[lines="none"] p {
+    flex: 1 1 100%;
+    /* let the text fill the row */
+    text-align: center;
+    /* and centre the words */
+}
+
+/* centre all copy blocks inside IonItem */
+ion-item>ion-text,
+ion-item p {
+    text-align: center;
+}
+
+/* optional: reduce default side padding in text rows */
+ion-item[lines="none"] {
+    --inner-padding-start: 0;
+    --inner-padding-end: 0;
+}
+
+/* ----- OPT-IN SCROLLING ----- */
+/* Add class=\"scroll\" on any <ion-content> that SHOULD scroll. */
+ion-content.scroll {
+    overflow-y: auto;
+}
+
+/* ----- UTILITY ----- */
+/* Apply .wl-center to any element you want centred inside a flex parent
+   without rewriting local CSS. */
+.wl-center {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}

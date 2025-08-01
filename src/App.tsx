@@ -46,6 +46,7 @@ import '@ionic/react/css/display.css';
 
 /* Theme variables */
 import './theme/variables.css';
+import './theme/global-layout.css'; 
 
 import React from "react";
 import JoinPairingScreen from "./ui/JoinPairingScreen";
