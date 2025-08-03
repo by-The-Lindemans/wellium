@@ -7,6 +7,14 @@ const DEV_URL = process.env.APP_URL || 'http://relay.localhost:8100';
 // allow splash-screen audio without gesture
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
+if (process.env.WELLIUM_DEV_RESET === '1') {
+    const { session, app } = require('electron');
+    app.whenReady().then(() =>
+        session.defaultSession.clearStorageData().then(() => {
+        })
+    );
+}
+
 function createWindow() {
     const win = new BrowserWindow({
         width: 1100,

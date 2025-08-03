@@ -37,6 +37,7 @@
     "@types/react-router-dom": "^5.3.3",
     "automerge": "^0.14.2",
     "capacitor-secure-storage-plugin": "^0.11.0",
+    "electron": "^37.2.5",
     "html5-qrcode": "^2.3.8",
     "ionicons": "^7.4.0",
     "jest-environment-jsdom": "^30.0.4",

@@ -1,8 +1,8 @@
-/* ----------------------------------------
-   GLOBAL LAYOUT PRESET  –  wellium edition
-   ---------------------------------------- */
+/*----------------------------------------------
+  GLOBAL LAYOUT – wellium
+  ----------------------------------------------*/
 
-/* Always occupy the whole viewport */
+/* full-viewport shell */
 html,
 body,
 ion-app,
@@ -13,76 +13,71 @@ ion-page {
     margin: 0;
 }
 
-/* ----- HEADERS ----- */
-/* Centre <ion-title> on all platforms (not just iOS) */
-ion-title {
+/* ----- centred titles (no click-blocking) ----- */
+ion-toolbar ion-title {
+    flex: 1 1 auto;
+    /* Ionic does native centring */
     text-align: center;
-    --padding-start: 0;
-    --padding-end: 0;
+    font-family: "Code New Roman", "Courier New", monospace;
+    font-weight: 500;
+    color: #7f7f7f;
+    pointer-events: none;
 }
 
+.dashboard-title {
+    font-size: 2rem;
+}
+
+/* header tweaks */
 ion-toolbar {
     --justify-content: center;
 }
 
-/* ----- DEFAULT <ion-content> BEHAVIOUR ----- */
-ion-content {
-    /* Remove Ionic’s automatic scrolling */
-    overflow: hidden;
-
-    /* Flexbox centring in both axes */
+/* ----- page content centring ----- */
+ion-content::part(scroll) {
     display: flex;
     flex-direction: column;
     align-items: center;
+    /* horizontal */
     justify-content: center;
-
-    /* Centre text unless a child overrides it */
+    /* vertical   */
+    height: 100%;
     text-align: center;
+}
+
+/* keep modal headers clickable */
+ion-modal ion-content::part(scroll) {
+    height: auto;
+}
+
+/* opt-in scrolling */
+ion-content {
+    overflow: hidden;
     --padding-start: 0;
     --padding-end: 0;
 }
 
-/*  Center any text-only IonItem (lines="none")  */
+ion-content.scroll {
+    overflow-y: auto;
+}
+
+/* centred intro rows */
 ion-item[lines="none"] {
-    /* stretch the “inner” part across the full row */
     --inner-padding-start: 0;
     --inner-padding-end: 0;
+    display: flex;
     justify-content: center;
-    /* put inner slot in the middle */
 }
 
 ion-item[lines="none"] ion-text,
 ion-item[lines="none"] p {
     flex: 1 1 100%;
-    /* let the text fill the row */
-    text-align: center;
-    /* and centre the words */
-}
-
-/* centre all copy blocks inside IonItem */
-ion-item>ion-text,
-ion-item p {
     text-align: center;
 }
 
-/* optional: reduce default side padding in text rows */
-ion-item[lines="none"] {
-    --inner-padding-start: 0;
-    --inner-padding-end: 0;
-}
-
-/* ----- OPT-IN SCROLLING ----- */
-/* Add class=\"scroll\" on any <ion-content> that SHOULD scroll. */
-ion-content.scroll {
-    overflow-y: auto;
-}
-
-/* ----- UTILITY ----- */
-/* Apply .wl-center to any element you want centred inside a flex parent
-   without rewriting local CSS. */
-.wl-center {
-    display: flex !important;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+/* footer spacing */
+ion-footer {
+    padding-block-end: calc(env(safe-area-inset-bottom, 0px) + clamp(1.5rem, 1vh, 3rem));
+    padding-inline: clamp(1rem, 4vw, 2rem);
+    text-align: center;
 }

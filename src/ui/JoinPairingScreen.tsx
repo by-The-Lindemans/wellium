@@ -2,7 +2,8 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
     IonPage, IonHeader, IonToolbar, IonTitle,
-    IonContent, IonList, IonItem, IonText, IonButton
+    IonContent, IonList, IonItem, IonText, IonButton,
+    IonFooter
 } from '@ionic/react';
 import QRCode from 'qrcode';
 
@@ -106,8 +107,10 @@ const JoinPairingScreen: React.FC<JoinProps> = ({ onFirstDevice }) => {
                     />
                 )}
 
+            </IonContent>
+
                 {/* first-device footer */}
-                <div ref={footerRef} style={{ marginBlockStart: 28 }}>
+                <IonFooter>
                     <IonText>
                         <p>
                             <strong>New here?</strong> If this is your first welliuᴍ device,
@@ -116,15 +119,12 @@ const JoinPairingScreen: React.FC<JoinProps> = ({ onFirstDevice }) => {
                     </IonText>
                     <IonButton
                         fill="outline"
-                        expand="block"
-                        onClick={() =>
-                            onFirstDevice ? onFirstDevice() : (window.location.hash = '#/')
-                        }
+                    expand="block"
+                    onClick={() => onFirstDevice?.()}
                     >
-                        This is my first welliuᴍ device
+                        This is my first wellium device
                     </IonButton>
-                </div>
-            </IonContent>
+                </IonFooter>
         </IonPage>
     );
 };
