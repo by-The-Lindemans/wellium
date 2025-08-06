@@ -1,8 +1,11 @@
 import React from 'react';
 import {
     IonPage, IonHeader, IonToolbar, IonTitle,
-    IonContent, IonButton, IonText, IonList, IonItem
+    IonButtons, IonButton, IonIcon, IonContent,
+    IonText, IonList, IonItem
 } from '@ionic/react';
+import { useNavigate } from 'react-router-dom';
+import { arrowBack } from 'ionicons/icons';
 import { registerPlugin } from '@capacitor/core';
 import {
     CapacitorBarcodeScannerPlugin,
@@ -10,24 +13,14 @@ import {
     CapacitorBarcodeScannerTypeHintALLOption as HintAll,
 } from '@capacitor/barcode-scanner';
 
-import { KeyManager } from '../crypto/KeyManager';
 import { IdentityStore, kyberFingerprintB64url } from '../crypto/identity';
 import { sha256Base64Url } from '../sync/yjsSync';
 
 const Scanner = registerPlugin<CapacitorBarcodeScannerPlugin>('BarcodeScanner');
-const SECRET_KEY = 'welliuᴍ/pairing-secret';
+const SECRET_KEY = 'wellium/pairing-secret';
 
-/**
- * HostPairingScreen
- * ------------------
- * Runs on any device that **has a camera** and is already part of the mesh.
- * 1. Opens the camera and scans the QR shown on the new (camera-less) device.
- * 2. Verifies fingerprint, saves the pairing secret locally so *we* join the room.
- * 3. Saves the peer's Kyber PK so we can initiate future sessions.
- * 4. Flags this tab as the bootstrap-sender; EncryptedYTransport will push the
- *    wrapped master key automatically once the WebRTC session comes up.
- */
 const HostPairingScreen: React.FC = () => {
+    const navigate = useNavigate();
     const [msg, setMsg] = React.useState<string | null>(null);
 
     async function handleScan() {
@@ -43,19 +36,18 @@ const HostPairingScreen: React.FC = () => {
             };
             if (req.v !== 1) throw new Error('Unexpected QR version');
 
-            // fingerprint safety check
             const fpCheck = await kyberFingerprintB64url(req.kemPk);
             if (fpCheck !== req.kemPkFp) throw new Error('Fingerprint mismatch');
 
-            // 1. Persist the pairing secret so this device joins the room
+            // Save secret so this device joins the room:
             localStorage.setItem(SECRET_KEY, req.pairingSecret);
 
-            // 2. Save peer identity (so we can be initiator)
+            // Save peer identity (initiator on our side):
             const roomTag = (await sha256Base64Url(new TextEncoder().encode(req.pairingSecret))).slice(0, 16);
             const ids = new IdentityStore();
             await ids.savePeer(roomTag, { kemPkB64: req.kemPk, fingerprintB64: req.kemPkFp });
 
-            // 3. Flag bootstrap-sender for next EncryptedYTransport start
+            // Flag initial bootstrap push for EncryptedYTransport:
             sessionStorage.setItem('wl/bootstrap-sender', '1');
 
             setMsg('Done! The new device will connect automatically.');
@@ -68,6 +60,11 @@ const HostPairingScreen: React.FC = () => {
         <IonPage>
             <IonHeader>
                 <IonToolbar>
+                    <IonButtons slot="start">
+                        <IonButton onClick={() => navigate(-1)}>
+                            <IonIcon icon={arrowBack} />
+                        </IonButton>
+                    </IonButtons>
                     <IonTitle>Scan new device</IonTitle>
                 </IonToolbar>
             </IonHeader>

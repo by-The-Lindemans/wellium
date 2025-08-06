@@ -1,56 +1,38 @@
-// ─────────────────────────────────────────────
-// src/pages/DashboardPage.tsx
-// ─────────────────────────────────────────────
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import {
-    IonPage, IonHeader, IonToolbar, IonTitle,
-    IonButtons, IonButton, IonIcon, IonContent,
-    IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle,
-    IonModal
+    IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon,
+    IonContent, IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle
 } from '@ionic/react';
-import { settingsOutline, arrowBack } from 'ionicons/icons';
-import HostPairingScreen from '../ui/HostPairingScreen';       // your existing QR view
+import { useNavigate } from 'react-router-dom';
+import { settingsOutline } from 'ionicons/icons';
 
-/* ---------- sample widgets ---------- */
 const widgets = [
-    { id: 'sync', title: 'Sync status' },
-    { id: 'files', title: 'Recent files' },
-    { id: 'peers', title: 'Connected peers' },
-    { id: 'storage', title: 'Storage usage' },
+    { id: 'w1', title: 'Sync status' },
+    { id: 'w2', title: 'Recent files' },
+    { id: 'w3', title: 'Connected peers' },
+    { id: 'w4', title: 'Storage usage' },
 ];
 
 const DashboardPage: React.FC = () => {
-    /* first-level Settings sheet */
-    const [settingsOpen, setSettingsOpen] = useState(false);
-    /* nested Host-Pairing modal */
-    const [pairingOpen, setPairingOpen] = useState(false);
-
-    /* Needed for iOS card presentation */
-    const presentingEl = useRef<HTMLElement | null>(null);
+    const navigate = useNavigate();
 
     return (
-        <IonPage ref={el => (presentingEl.current = el)}>
-
-            {/* ─ HEADER ───────────────────── */}
+        <IonPage>
             <IonHeader>
                 <IonToolbar>
-
-                    {/* spacer keeps title perfectly centred */}
-                    <IonButtons slot="start">
-                        <div style={{ width: 44, height: 44 }} />
-                    </IonButtons>
+                    {/* spacer so the absoluted title stays visually centered */}
+                    <IonButtons slot="start"><div style={{ width: 40 }} /></IonButtons>
 
                     <IonTitle className="dashboard-title">welliuᴍ</IonTitle>
 
                     <IonButtons slot="end">
-                        <IonButton aria-label="Settings" onClick={() => setSettingsOpen(true)}>
+                        <IonButton onClick={() => navigate('/settings')}>
                             <IonIcon icon={settingsOutline} />
                         </IonButton>
                     </IonButtons>
                 </IonToolbar>
             </IonHeader>
 
-            {/* ─ MAIN GRID ────────────────── */}
             <IonContent>
                 <IonGrid fixed>
                     <IonRow>
@@ -60,12 +42,7 @@ const DashboardPage: React.FC = () => {
                                     <IonCardHeader>
                                         <IonCardTitle>{w.title}</IonCardTitle>
                                     </IonCardHeader>
-                                    <div style={{
-                                        height: 120,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}>
+                                    <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <p>Widget body</p>
                                     </div>
                                 </IonCard>
@@ -74,36 +51,6 @@ const DashboardPage: React.FC = () => {
                     </IonRow>
                 </IonGrid>
             </IonContent>
-
-            {/* ─ SETTINGS MODAL ───────────── */}
-            <IonModal
-                isOpen={settingsOpen}
-                onDidDismiss={() => setSettingsOpen(false)}
-                presentingElement={presentingEl.current ?? undefined}
-            >
-                <IonPage>
-                    <IonHeader>
-                        <IonToolbar>
-                            <IonTitle className="settings-title">Settings</IonTitle>
-                        </IonToolbar>
-                    </IonHeader>
-
-                    <IonContent className="ion-padding">
-                        <IonButton expand="block" onClick={() => setPairingOpen(true)}>
-                            Add / Scan device
-                        </IonButton>
-                    </IonContent>
-                </IonPage>
-            </IonModal>
-
-            {/* ─ HOST-PAIRING (nested) ────── */}
-            <IonModal
-                isOpen={pairingOpen}
-                onDidDismiss={() => setPairingOpen(false)}
-                presentingElement={presentingEl.current ?? undefined}
-            >
-                <HostPairingScreen onClose={() => setPairingOpen(false)} />
-            </IonModal>
         </IonPage>
     );
 };

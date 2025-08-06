@@ -846,7 +846,7 @@ export declare namespace JSXBase {
     interface DetailsHTMLAttributes<T> extends HTMLAttributes<T> {
         open?: boolean;
         name?: string;
-        onToggle?: (event: Event) => void;
+        onToggle?: (event: ToggleEvent) => void;
     }
     interface DelHTMLAttributes<T> extends HTMLAttributes<T> {
         cite?: string;
@@ -1552,6 +1552,13 @@ export declare namespace JSXBase {
         z?: number | string;
         zoomAndPan?: string;
     }
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ToggleEvent) */
+    interface ToggleEvent extends Event {
+        /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ToggleEvent/newState) */
+        readonly newState: string;
+        /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ToggleEvent/oldState) */
+        readonly oldState: string;
+    }
     interface DOMAttributes<T> extends JSXAttributes<T> {
         slot?: string;
         part?: string;
@@ -1568,6 +1575,10 @@ export declare namespace JSXBase {
         onCompositionstartCapture?: (event: CompositionEvent) => void;
         onCompositionupdate?: (event: CompositionEvent) => void;
         onCompositionupdateCapture?: (event: CompositionEvent) => void;
+        onBeforeToggle?: (event: ToggleEvent) => void;
+        onBeforeToggleCapture?: (event: ToggleEvent) => void;
+        onToggle?: (event: ToggleEvent) => void;
+        onToggleCapture?: (event: ToggleEvent) => void;
         onFocus?: (event: FocusEvent) => void;
         onFocusCapture?: (event: FocusEvent) => void;
         onFocusin?: (event: FocusEvent) => void;
@@ -1586,10 +1597,6 @@ export declare namespace JSXBase {
         onSubmitCapture?: (event: Event) => void;
         onInvalid?: (event: Event) => void;
         onInvalidCapture?: (event: Event) => void;
-        onBeforeToggle?: (event: Event) => void;
-        onBeforeToggleCapture?: (event: Event) => void;
-        onToggle?: (event: Event) => void;
-        onToggleCapture?: (event: Event) => void;
         onLoad?: (event: Event) => void;
         onLoadCapture?: (event: Event) => void;
         onError?: (event: Event) => void;
