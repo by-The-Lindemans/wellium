@@ -13,15 +13,17 @@ ion-page {
     margin: 0;
 }
 
-/* ----- centred titles (no click-blocking) ----- */
+/* ----- centred titles ----- */
 ion-toolbar ion-title {
-    flex: 1 1 auto;
-    /* Ionic does native centring */
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     text-align: center;
+    margin: 0;
     font-family: "Code New Roman", "Courier New", monospace;
     font-weight: 500;
     color: #7f7f7f;
-    pointer-events: none;
 }
 
 .dashboard-title {
@@ -45,9 +47,65 @@ ion-content::part(scroll) {
     text-align: center;
 }
 
-/* keep modal headers clickable */
-ion-modal ion-content::part(scroll) {
-    height: auto;
+/* Make ion-labels inside ion-item stretch instead of shrinking */
+ion-item>ion-label:not([slot="end"]),
+ion-item[lines="none"]>ion-label:not([slot="end"]) {
+    width: 100% !important;
+    /* or width: auto !important; */
+    flex: 1 1 auto !important;
+    /* let the label grow */
+    min-width: 0 !important;
+    /* prevent overflow when flexing */
+}
+
+ion-item.wl-copy {
+    --padding-start: 0;
+    --padding-end: 0;
+    --inner-padding-start: 0;
+    --inner-padding-end: 0;
+    --min-height: auto;
+    /* don’t force tall rows */
+    --inner-border-width: 0;
+    /* ensure no hairline is drawn */
+}
+
+/* Treat any non-interactive, line-less <ion-item> as a copy row.
+   This removes the reserved start/end gutters that cause the left bias. */
+ion-item[lines="none"]:not([button]):not([detail]):not([href]) {
+    /* zero outer + inner padding on both sides */
+    --padding-start: 0 !important;
+    --padding-end: 0 !important;
+    --inner-padding-start: 0 !important;
+    --inner-padding-end: 0 !important;
+
+    /* tidy up defaults */
+    --min-height: auto;
+    --inner-border-width: 0;
+    --background-focused: transparent;
+    --background-hover: transparent;
+}
+
+/* Make the text fill the row and be centered */
+ion-item[lines="none"]:not([button]):not([detail]):not([href]) ion-text,
+ion-item[lines="none"]:not([button]):not([detail]):not([href]) p {
+    width: 100%;
+    text-align: center;
+    margin: 0;
+    padding-inline: clamp(8px, 2vw, 16px);
+    /* small, responsive breathing room */
+}
+
+/* Optional: remove extra list padding so the copy row truly spans center */
+ion-list {
+    padding: 0;
+    /* or: --padding-start: 0; --padding-end: 0; */
+}
+
+/* Make the text fill the row and center it */
+ion-item.wl-copy ion-text,
+ion-item.wl-copy p {
+    width: 100%;
+    text-align: center;
 }
 
 /* opt-in scrolling */
