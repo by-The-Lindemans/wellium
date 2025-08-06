@@ -4,6 +4,7 @@ import {
     IonContent, IonList, IonItem, IonText, IonButton
 } from '@ionic/react';
 import { useNavigate } from 'react-router-dom';
+import { canOpenCamera } from '../utils/platform';
 import QRCode from 'qrcode';
 
 import { KeyManager } from '../crypto/KeyManager';
@@ -11,6 +12,12 @@ import { kyberFingerprintB64url } from '../crypto/identity';
 import { sha256Base64Url } from '../sync/yjsSync';
 
 const SECRET_KEY = 'wellium/pairing-secret';
+
+const navigate = useNavigate();
+const canScan = canOpenCamera();
+const ctaLabel = canScan
+    ? 'This is my first wellium device'
+    : 'I understand that I need to set up Wellium on mobile first — continue anyway';
 
 const JoinPairingScreen: React.FC = () => {
     const navigate = useNavigate();
@@ -120,10 +127,10 @@ const JoinPairingScreen: React.FC = () => {
                         expand="block"
                         onClick={() => {
                             localStorage.setItem('wl/onboarding-ok', '1');
-                            navigate('/', { replace: true });
+                            navigate('/home', { replace: true });
                         }}
                     >
-                        This is my first wellium device
+                        {ctaLabel}
                     </IonButton>
                 </div>
             </IonContent>

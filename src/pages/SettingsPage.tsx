@@ -1,35 +1,43 @@
+// src/pages/SettingsPage.tsx
 import React from 'react';
 import {
     IonPage, IonHeader, IonToolbar, IonTitle,
-    IonButtons, IonButton, IonIcon, IonContent
+    IonButtons, IonBackButton, IonContent,
+    IonButton, IonList, IonItem, IonText
 } from '@ionic/react';
-import { useNavigate } from 'react-router-dom';
-import { arrowBack } from 'ionicons/icons';
+import { canOpenCamera } from '../utils/platform';
 
 const SettingsPage: React.FC = () => {
-    const navigate = useNavigate();
+    const canScan = canOpenCamera();
 
     return (
         <IonPage>
             <IonHeader>
                 <IonToolbar>
-                    {/* Back using React Router (works with HashRouter) */}
                     <IonButtons slot="start">
-                        <IonButton onClick={() => navigate(-1)}>
-                            <IonIcon icon={arrowBack} />
-                        </IonButton>
+                        <IonBackButton defaultHref="/home" />
                     </IonButtons>
-
-                    {/* spacer to keep title centered */}
-                    <IonButtons slot="end"><div style={{ width: 40 }} /></IonButtons>
                     <IonTitle>Settings</IonTitle>
                 </IonToolbar>
             </IonHeader>
 
             <IonContent className="ion-padding">
-                <IonButton expand="block" onClick={() => navigate('/pairing')}>
-                    Add / Scan device
-                </IonButton>
+                {canScan ? (
+                    <IonButton expand="block" routerLink="/pairing" routerDirection="forward">
+                        Add / Scan device
+                    </IonButton>
+                ) : (
+                    <IonList>
+                        <IonItem lines="none">
+                            <IonText>
+                                <p>
+                                    Scanning is only available on mobile. To add a device, open Wellium on an iOS/Android device and choose
+                                    <em> Scan new device</em>.
+                                </p>
+                            </IonText>
+                        </IonItem>
+                    </IonList>
+                )}
             </IonContent>
         </IonPage>
     );

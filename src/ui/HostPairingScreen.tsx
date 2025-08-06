@@ -1,11 +1,11 @@
+// src/ui/HostPairingScreen.tsx
 import React from 'react';
 import {
     IonPage, IonHeader, IonToolbar, IonTitle,
-    IonButtons, IonButton, IonIcon, IonContent,
-    IonText, IonList, IonItem
+    IonButtons, IonBackButton, IonContent,
+    IonButton, IonText, IonList, IonItem
 } from '@ionic/react';
 import { useNavigate } from 'react-router-dom';
-import { arrowBack } from 'ionicons/icons';
 import { registerPlugin } from '@capacitor/core';
 import {
     CapacitorBarcodeScannerPlugin,
@@ -15,13 +15,16 @@ import {
 
 import { IdentityStore, kyberFingerprintB64url } from '../crypto/identity';
 import { sha256Base64Url } from '../sync/yjsSync';
+import { canOpenCamera } from '../utils/platform';
 
 const Scanner = registerPlugin<CapacitorBarcodeScannerPlugin>('BarcodeScanner');
-const SECRET_KEY = 'wellium/pairing-secret';
+const SECRET_KEY = 'welliuᴍ/pairing-secret';
 
 const HostPairingScreen: React.FC = () => {
     const navigate = useNavigate();
     const [msg, setMsg] = React.useState<string | null>(null);
+    const canScan = canOpenCamera();
+    const [autoTried, setAutoTried] = React.useState(false);
 
     async function handleScan() {
         try {
@@ -39,43 +42,60 @@ const HostPairingScreen: React.FC = () => {
             const fpCheck = await kyberFingerprintB64url(req.kemPk);
             if (fpCheck !== req.kemPkFp) throw new Error('Fingerprint mismatch');
 
-            // Save secret so this device joins the room:
             localStorage.setItem(SECRET_KEY, req.pairingSecret);
-
-            // Save peer identity (initiator on our side):
             const roomTag = (await sha256Base64Url(new TextEncoder().encode(req.pairingSecret))).slice(0, 16);
             const ids = new IdentityStore();
             await ids.savePeer(roomTag, { kemPkB64: req.kemPk, fingerprintB64: req.kemPkFp });
 
-            // Flag initial bootstrap push for EncryptedYTransport:
             sessionStorage.setItem('wl/bootstrap-sender', '1');
-
             setMsg('Done! The new device will connect automatically.');
         } catch (e: any) {
             setMsg(e?.message ?? String(e));
         }
     }
 
+    // Auto-open camera on supported platforms
+    React.useEffect(() => {
+        if (canScan && !autoTried) {
+            setAutoTried(true);
+            void handleScan();
+        }
+    }, [canScan, autoTried]);
+
     return (
         <IonPage>
             <IonHeader>
                 <IonToolbar>
                     <IonButtons slot="start">
-                        <IonButton onClick={() => navigate(-1)}>
-                            <IonIcon icon={arrowBack} />
-                        </IonButton>
+                        <IonBackButton defaultHref="/home" />
                     </IonButtons>
                     <IonTitle>Scan new device</IonTitle>
                 </IonToolbar>
             </IonHeader>
 
             <IonContent className="ion-padding">
-                <IonButton expand="block" onClick={handleScan} style={{ marginTop: 12 }}>
-                    Open camera
-                </IonButton>
-
-                {msg && (
-                    <IonList><IonItem lines="none"><IonText>{msg}</IonText></IonItem></IonList>
+                {canScan ? (
+                    <>
+                        <IonButton expand="block" onClick={handleScan} style={{ marginTop: 12 }}>
+                            Open camera
+                        </IonButton>
+                        {msg && (
+                            <IonList>
+                                <IonItem lines="none"><IonText>{msg}</IonText></IonItem>
+                            </IonList>
+                        )}
+                    </>
+                ) : (
+                    <IonList>
+                        <IonItem lines="none">
+                            <IonText>
+                                <p>
+                                    Camera scanning is only available on iOS/Android.
+                                    Open Wellium on a mobile device and use <em>Scan new device</em> there.
+                                </p>
+                            </IonText>
+                        </IonItem>
+                    </IonList>
                 )}
             </IonContent>
         </IonPage>
