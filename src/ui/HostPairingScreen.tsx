@@ -1,11 +1,9 @@
-// src/ui/HostPairingScreen.tsx
-import { useEffect, useState } from 'react';
+import * as React from 'react';
 import {
     IonPage, IonHeader, IonToolbar, IonTitle,
     IonButtons, IonBackButton, IonContent,
     IonButton, IonText, IonList, IonItem
 } from '@ionic/react';
-import { useNavigate } from 'react-router-dom';
 import { registerPlugin } from '@capacitor/core';
 import {
     CapacitorBarcodeScannerPlugin,
@@ -15,16 +13,12 @@ import {
 
 import { IdentityStore, kyberFingerprintB64url } from '../crypto/identity';
 import { sha256Base64Url } from '../sync/yjsSync';
-import { canOpenCamera } from '../utils/platform';
 
 const Scanner = registerPlugin<CapacitorBarcodeScannerPlugin>('BarcodeScanner');
 const SECRET_KEY = 'welliuᴍ/pairing-secret';
 
 const HostPairingScreen: React.FC = () => {
-    const navigate = useNavigate();
-    const [msg, setMsg] = useState<string | null>(null);
-    const canScan = canOpenCamera();
-    const [autoTried, setAutoTried] = useState(false);
+    const [msg, setMsg] = React.useState<string | null>(null);
 
     async function handleScan() {
         try {
@@ -54,48 +48,25 @@ const HostPairingScreen: React.FC = () => {
         }
     }
 
-    // Auto-open camera on supported platforms
-    useEffect(() => {
-        if (canScan && !autoTried) {
-            setAutoTried(true);
-            void handleScan();
-        }
-    }, [canScan, autoTried]);
-
     return (
         <IonPage>
             <IonHeader>
                 <IonToolbar>
+                    {/* native back button handles navigation; no hooks needed here */}
                     <IonButtons slot="start">
-                        <IonBackButton defaultHref="/home" />
+                        <IonBackButton defaultHref="/settings" />
                     </IonButtons>
                     <IonTitle>Scan new device</IonTitle>
                 </IonToolbar>
             </IonHeader>
 
             <IonContent className="ion-padding">
-                {canScan ? (
-                    <>
-                        <IonButton expand="block" onClick={handleScan} style={{ marginTop: 12 }}>
-                            Open camera
-                        </IonButton>
-                        {msg && (
-                            <IonList>
-                                <IonItem lines="none"><IonText>{msg}</IonText></IonItem>
-                            </IonList>
-                        )}
-                    </>
-                ) : (
-                    <IonList>
-                        <IonItem lines="none">
-                            <IonText>
-                                <p>
-                                    Camera scanning is only available on iOS/Android.
-                                    Open Wellium on a mobile device and use <em>Scan new device</em> there.
-                                </p>
-                            </IonText>
-                        </IonItem>
-                    </IonList>
+                <IonButton expand="block" onClick={handleScan} style={{ marginTop: 12 }}>
+                    Open camera
+                </IonButton>
+
+                {msg && (
+                    <IonList><IonItem lines="none"><IonText>{msg}</IonText></IonItem></IonList>
                 )}
             </IonContent>
         </IonPage>

@@ -2,6 +2,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import ErrorBoundary from './dev/ErrorBoundary';
 import { SyncProvider } from './sync/SyncProvider';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { KeyManager } from './crypto/KeyManager';
@@ -32,12 +33,17 @@ if (signalingUrls.length === 0) {
   console.error('VITE_SIGNAL_URL is missing. Set it in .env(.development).');
 }
 
+window.addEventListener('error', (e) => console.error('[window.onerror]', e.error || e.message));
+window.addEventListener('unhandledrejection', (e) => console.error('[unhandledrejection]', e.reason));
+
 const container = document.getElementById('root')!;
 const root = createRoot(container);
 root.render(
   <StrictMode>
-    <SyncProvider signalingUrls={signalingUrls}>
-      <App />
-    </SyncProvider>
+    <ErrorBoundary>
+      <SyncProvider signalingUrls={signalingUrls}>
+        <App />
+      </SyncProvider>
+    </ErrorBoundary>
   </StrictMode>
 );

@@ -1,56 +1,49 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import * as React from 'react';
 import {
     IonPage, IonHeader, IonToolbar, IonTitle,
-    IonContent, IonList, IonItem, IonText, IonButton
+    IonContent, IonList, IonItem, IonText, IonButton, IonFooter
 } from '@ionic/react';
-import { useNavigate } from 'react-router-dom';
-import { canOpenCamera } from '../utils/platform';
 import QRCode from 'qrcode';
+import { useNavigate } from 'react-router-dom';
 
 import { KeyManager } from '../crypto/KeyManager';
 import { kyberFingerprintB64url } from '../crypto/identity';
-import { sha256Base64Url } from '../sync/yjsSync';
+import { generatePairingSecret } from '../sync/SyncProvider';
 
-const SECRET_KEY = 'wellium/pairing-secret';
+const SECRET_KEY = 'welliuᴍ/pairing-secret';
 
-const navigate = useNavigate();
-const canScan = canOpenCamera();
-const ctaLabel = canScan
-    ? 'This is my first wellium device'
-    : 'I understand that I need to set up Wellium on mobile first — continue anyway';
+type JoinProps = { onFirstDevice?: () => void };
 
-const JoinPairingScreen: React.FC = () => {
+const JoinPairingScreen: React.FC<JoinProps> = ({ onFirstDevice }) => {
     const navigate = useNavigate();
 
-    const introRef = useRef<HTMLDivElement>(null);
-    const contentRef = useRef<HTMLIonContentElement>(null);
+    const contentRef = React.useRef<HTMLIonContentElement>(null);
+    const introRef = React.useRef<HTMLDivElement>(null);
+    const footerRef = React.useRef<HTMLDivElement>(null);
 
-    const [side, setSide] = useState(0);
-    const [qrUrl, setQrUrl] = useState<string | null>(null);
+    const [side, setSide] = React.useState(0);
+    const [qrUrl, setQrUrl] = React.useState<string | null>(null);
 
-    // Measure available square inside content (no scroll)
-    useLayoutEffect(() => {
+    // measure available square in content (must be inside component)
+    React.useLayoutEffect(() => {
         if (!contentRef.current) return;
-
         const measure = () => {
             const rect = contentRef.current!.getBoundingClientRect();
             const intro = introRef.current?.offsetHeight ?? 0;
-
-            const freeH = rect.height - intro - 24; // small gap
+            const footer = footerRef.current?.offsetHeight ?? 0;
+            const freeH = rect.height - intro - footer;
             const freeW = rect.width;
             const short = Math.min(freeW, freeH);
-
             setSide(Math.max(0, Math.floor(short * 0.9)));
         };
-
         measure();
         const ro = new ResizeObserver(measure);
         ro.observe(contentRef.current);
         return () => ro.disconnect();
     }, []);
 
-    // Create QR whenever side changes
-    useEffect(() => {
+    // (re)draw QR whenever side changes
+    React.useEffect(() => {
         if (!side) return;
 
         (async () => {
@@ -58,26 +51,18 @@ const JoinPairingScreen: React.FC = () => {
             const kemPk = await km.getLocalKemPublicKeyB64();
             const kemFp = await kyberFingerprintB64url(kemPk);
 
-            // ensure secret exists
             let secret = localStorage.getItem(SECRET_KEY);
             if (!secret) {
-                const u = new Uint8Array(32);
-                crypto.getRandomValues(u);
-                const b64url = btoa(String.fromCharCode(...u))
-                    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-                secret = b64url;
+                secret = generatePairingSecret();
                 localStorage.setItem(SECRET_KEY, secret);
             }
-
-            // room tag (optional, consistent with your storage)
-            await sha256Base64Url(new TextEncoder().encode(secret));
 
             const payload = JSON.stringify({ v: 1, pairingSecret: secret, kemPk, kemPkFp: kemFp });
             const dpr = window.devicePixelRatio || 1;
 
             const url = await QRCode.toDataURL(payload, {
                 margin: 0,
-                width: side * dpr, // physical pixels for crispness
+                width: side * dpr,
             });
 
             setQrUrl(url);
@@ -87,9 +72,7 @@ const JoinPairingScreen: React.FC = () => {
     return (
         <IonPage>
             <IonHeader>
-                <IonToolbar>
-                    <IonTitle>Show this QR</IonTitle>
-                </IonToolbar>
+                <IonToolbar><IonTitle>Show this QR</IonTitle></IonToolbar>
             </IonHeader>
 
             <IonContent ref={contentRef}>
@@ -98,7 +81,7 @@ const JoinPairingScreen: React.FC = () => {
                         <IonItem lines="none">
                             <IonText>
                                 <p style={{ marginBlock: 12 }}>
-                                    Ask a device that has a camera to open <em>Scan&nbsp;new&nbsp;device</em> and aim at this code.
+                                    Ask a device that has a camera to open <em>Scan new device</em> and aim at this code.
                                     Pairing will finish automatically.
                                 </p>
                             </IonText>
@@ -115,8 +98,10 @@ const JoinPairingScreen: React.FC = () => {
                         style={{ width: side, height: side }}
                     />
                 )}
+            </IonContent>
 
-                <div style={{ marginTop: 28 }}>
+            <IonFooter>
+                <div ref={footerRef} className="ion-padding">
                     <IonText>
                         <p>
                             <strong>New here?</strong> If this is your first welliuᴍ device, you don’t need to scan anything.
@@ -126,14 +111,18 @@ const JoinPairingScreen: React.FC = () => {
                         fill="outline"
                         expand="block"
                         onClick={() => {
-                            localStorage.setItem('wl/onboarding-ok', '1');
-                            navigate('/home', { replace: true });
+                            // prefer caller, otherwise mark and go home (RRv7: use navigate, don’t return <Navigate/>)
+                            if (onFirstDevice) onFirstDevice();
+                            else {
+                                localStorage.setItem('wl/onboarding-ok', '1');
+                                navigate('/', { replace: true });
+                            }
                         }}
                     >
-                        {ctaLabel}
+                        This is my first wellium device
                     </IonButton>
                 </div>
-            </IonContent>
+            </IonFooter>
         </IonPage>
     );
 };
