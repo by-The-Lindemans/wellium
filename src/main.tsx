@@ -1,5 +1,5 @@
 // src/main.tsx
-import React from 'react';
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { SyncProvider } from './sync/SyncProvider';
@@ -35,9 +35,9 @@ if (signalingUrls.length === 0) {
 const container = document.getElementById('root')!;
 const root = createRoot(container);
 root.render(
-  <React.StrictMode>
+  <StrictMode>
     <SyncProvider signalingUrls={signalingUrls}>
       <App />
     </SyncProvider>
-  </React.StrictMode>
+  </StrictMode>
 );

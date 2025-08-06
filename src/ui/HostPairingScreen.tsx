@@ -1,5 +1,5 @@
 // src/ui/HostPairingScreen.tsx
-import React from 'react';
+import { useEffect, useState } from 'react';
 import {
     IonPage, IonHeader, IonToolbar, IonTitle,
     IonButtons, IonBackButton, IonContent,
@@ -22,9 +22,9 @@ const SECRET_KEY = 'welliuᴍ/pairing-secret';
 
 const HostPairingScreen: React.FC = () => {
     const navigate = useNavigate();
-    const [msg, setMsg] = React.useState<string | null>(null);
+    const [msg, setMsg] = useState<string | null>(null);
     const canScan = canOpenCamera();
-    const [autoTried, setAutoTried] = React.useState(false);
+    const [autoTried, setAutoTried] = useState(false);
 
     async function handleScan() {
         try {
@@ -55,7 +55,7 @@ const HostPairingScreen: React.FC = () => {
     }
 
     // Auto-open camera on supported platforms
-    React.useEffect(() => {
+    useEffect(() => {
         if (canScan && !autoTried) {
             setAutoTried(true);
             void handleScan();

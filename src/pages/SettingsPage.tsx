@@ -1,5 +1,5 @@
 // src/pages/SettingsPage.tsx
-import React from 'react';
+import { FC } from 'react';
 import {
     IonPage, IonHeader, IonToolbar, IonTitle,
     IonButtons, IonBackButton, IonContent,
@@ -7,7 +7,7 @@ import {
 } from '@ionic/react';
 import { canOpenCamera } from '../utils/platform';
 
-const SettingsPage: React.FC = () => {
+const SettingsPage: FC = () => {
     const canScan = canOpenCamera();
 
     return (

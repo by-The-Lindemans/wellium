@@ -1,5 +1,5 @@
 // src/ui/Splash.tsx
-import React from 'react';
+import {useRef, useState, useMemo, useEffect} from 'react';
 import { Capacitor } from '@capacitor/core';
 import { NativeAudio } from '@capacitor-community/native-audio';
 
@@ -7,35 +7,35 @@ type Props = { duration?: number; onDone: () => void };
 
 const Splash: React.FC<Props> = ({ duration = 2000, onDone }) => {
     const base = import.meta.env.BASE_URL || '/';
-    const started = React.useRef(false);
-    const [playAnim, setPlayAnim] = React.useState(false);
+    const started = useRef(false);
+    const [playAnim, setPlayAnim] = useState(false);
 
     // 11:3 logical box
     const VBW = 1100;
     const VBH = 300;
     const CX = VBW / 2;
 
-    const [fs, setFs] = React.useState<number>(160);
-    const [fixed, setFixed] = React.useState(false);
-    const [doFade, setDoFade] = React.useState(false);
-    const measureTextRef = React.useRef<SVGTextElement>(null);
+    const [fs, setFs] = useState<number>(160);
+    const [fixed, setFixed] = useState(false);
+    const [doFade, setDoFade] = useState(false);
+    const measureTextRef = useRef<SVGTextElement>(null);
 
-    const isNative = React.useMemo(() => {
+    const isNative = useMemo(() => {
         const p = Capacitor.getPlatform();
         return p === 'ios' || p === 'android';
     }, []);
-    const isElectron = React.useMemo(() => {
+    const isElectron = useMemo(() => {
         return !!((window as any).process?.versions?.electron || navigator.userAgent.includes('Electron'));
     }, []);
 
-    const audioUrl = React.useMemo(
+    const audioUrl = useMemo(
         () => new URL('sounds/sonic_logo.wav', window.location.origin + base).toString(),
         [base]
     );
 
     // ---- Electron predecode (Web Audio) cache ----
-    let electronCtxRef = React.useRef<AudioContext | null>(null);
-    let electronBufRef = React.useRef<AudioBuffer | null>(null);
+    let electronCtxRef = useRef<AudioContext | null>(null);
+    let electronBufRef = useRef<AudioBuffer | null>(null);
     async function preloadAudioElectron(url: string) {
         if (!electronCtxRef.current) electronCtxRef.current = new AudioContext();
         if (!electronBufRef.current) {
@@ -65,7 +65,7 @@ const Splash: React.FC<Props> = ({ duration = 2000, onDone }) => {
         return () => NativeAudio.play({ assetId: 'splash' });
     }
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (started.current) return;
         started.current = true;
 

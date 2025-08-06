@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
     IonPage, IonHeader, IonToolbar, IonTitle,
     IonContent, IonList, IonItem, IonText, IonButton

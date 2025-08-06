@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { IonApp, setupIonicReact } from '@ionic/react';
 import { HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
@@ -28,11 +28,11 @@ const SECRET_KEY = 'wellium/pairing-secret';
 
 function Guard() {
   const navigate = useNavigate();
-  const [showSplash, setShowSplash] = React.useState(
+  const [showSplash, setShowSplash] = useState(
     () => !sessionStorage.getItem('wl/splash-shown')
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (showSplash) return;
 
     const hasSecret = !!localStorage.getItem(SECRET_KEY);
