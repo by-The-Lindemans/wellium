@@ -6,8 +6,6 @@
 
 Built on Ionic (a cross-platform web framework) and Capacitor (a native-bridge layer), wellium runs natively on Android, iOS, the web, and desktop.  Records live locally in a lightweight SQLite database and are encrypted at rest under AES-256.  When you share or sync data, we employ a hybrid post-quantum scheme, using Kyber (via our ML-KEM wrapper) to negotiate session keys, and then AES-256 to encrypt the bulk data, so your information stays confidential even against future quantum attacks.  You can import CSV files or FHIR XML exports (Fast Healthcare Interoperability Resources) from sources like Apple Health, and export in the same standard formats for backup or sharing.  All telemetry and error logs go to a local JSON file or (optionally) to Sentry, so you can troubleshoot without leaking personal details.
 
-Our next focus is on provider collaboration and uninterrupted ownership. We plan to support automated FHIR syncing with clinics and labs and to enable offline‑first workflows so you and your care team stay in sync even without a network. Future updates will add conflict resolution with CRDTs (conflict‑free replicated data types) and on‑device analytics that highlight trends without ever sending raw health data to a server.
-
 ---
 
 ## Quick Start
