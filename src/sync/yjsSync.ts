@@ -26,14 +26,30 @@ export async function startYSync(opts: {
     signalingUrls: string[];
     autoConnect?: boolean;
 }): Promise<YSync> {
-    const { room, signalingUrls, autoConnect = true } = opts;
+    const { room, autoConnect = true } = opts;
 
     const realDoc = new Y.Doc();
     const dummyDoc = new Y.Doc();            // <- prevents plaintext sync
 
+    dummyDoc.on("update", update => Y.applyUpdate(realDoc, update));
+    realDoc.on("update", update => Y.applyUpdate(dummyDoc, update));
+
+
     const provider = new WebrtcProvider(room, dummyDoc, {
-        signaling: signalingUrls,
-        // DON'T pass password here; we encrypt at app layer
+        signaling: [
+            "wss://y-webrtc-signaling-backend.herokuapp.com",
+            "wss://y-webrtc-signaling.fly.dev"
+        ],
+        peerOpts: {
+            iceServers: [
+                { urls: "stun:stun.services.mozilla.com:3478" },
+
+                { urls: "stun:stun.stunprotocol.org:3478" },
+                { urls: "stun:stun.ideasip.com" },
+                { urls: "stun:stun.sipgate.net" },
+                { urls: "stun:stun.fwdnet.net" }
+            ]
+        },
     });
 
     if (!autoConnect) provider.disconnect();
