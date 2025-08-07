@@ -14,4 +14,3 @@ ext {
     androidxEspressoCoreVersion = '3.6.1'
     cordovaAndroidVersion = '10.1.1'
 }
-println ">>> variables.gradle loaded: min=${minSdkVersion}, target=${targetSdkVersion}, compile=${compileSdkVersion}"
