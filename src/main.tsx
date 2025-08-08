@@ -8,11 +8,12 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { KeyManager } from '@crypto/KeyManager';
 import { loadKyberProvider } from '@crypto/pq/loadKyber';
 import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
 import './theme/fonts.css';
 
 (async () => {
   if (Capacitor.getPlatform() === 'android') {
-    await StatusBar.setOverlaysWebView({ overlay: false });
+    await StatusBar.setOverlaysWebView({ overlay: true });
     await StatusBar.setStyle({ style: Style.Dark });
     await StatusBar.setBackgroundColor({ color: '#000000' });
   }
@@ -21,9 +22,17 @@ import './theme/fonts.css';
   await KeyManager.installPreferredKem({});
 })();
 
+if (Capacitor.getPlatform() === 'android') {
+  CapApp.addListener('backButton', ({ canGoBack }) => {
+    if (canGoBack) {
+      window.history.back();
+    }
+  });
+}
+
 // StatusBar is a no-op on web; safe to try/catch
 if (typeof window !== 'undefined') {
-  StatusBar.setStyle({ style: Style.Light }).catch(() => { });
+  StatusBar.setStyle({ style: Style.Dark }).catch(() => { });
   StatusBar.setBackgroundColor({ color: '#000000' }).catch(() => { });
 }
 

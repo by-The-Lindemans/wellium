@@ -1,6 +1,21 @@
 /*----------------------------------------------
   GLOBAL LAYOUT – wellium
   ----------------------------------------------*/
+/* --- SAFE-AREA SETUP (works on iOS, has Android fallback) --- */
+html.md {
+    /* material mode = Android */
+    --wl-safe-top-fallback: 24px;
+    /* pick 24–32px; tweak to taste */
+}
+
+:root {
+    --wl-safe-top: max(var(--ion-safe-area-top, 0px),
+            env(safe-area-inset-top, 0px),
+            var(--wl-safe-top-fallback, 0px));
+    --wl-safe-bottom: max(var(--ion-safe-area-bottom, 0px),
+            env(safe-area-inset-bottom, 0px),
+            0px);
+}
 
 /* full-viewport shell */
 html,
@@ -31,7 +46,10 @@ ion-toolbar ion-title {
 }
 
 /* header tweaks */
+ion-header,
 ion-toolbar {
+    --padding-top: var(--wl-safe-top);
+    --min-height: calc(32px + var(--wl-safe-top));
     --justify-content: center;
 }
 
@@ -43,8 +61,9 @@ ion-content::part(scroll) {
     /* horizontal */
     justify-content: center;
     /* vertical   */
-    height: 100%;
     text-align: center;
+    padding-bottom: var(--wl-safe-bottom);
+    min-block-size: 100%;
 }
 
 /* Make ion-labels inside ion-item stretch instead of shrinking */
@@ -131,6 +150,14 @@ ion-item[lines="none"] ion-text,
 ion-item[lines="none"] p {
     flex: 1 1 100%;
     text-align: center;
+}
+
+body.statusbar-padding,
+ion-app.statusbar-padding,
+ion-header.statusbar-padding,
+ion-content.statusbar-padding {
+    padding-top: 0 !important;
+    --padding-top: 0 !important;
 }
 
 /* footer spacing */
