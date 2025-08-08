@@ -34,7 +34,7 @@ export default defineConfig({
   ],
   server: {
     host: 'relay.localhost',
-    port: 8100,          //  no https: {}  ⟵ remove it
+    port: 8100,
     proxy: {
       '/yws': {
         target: 'ws://127.0.0.1:9001',
@@ -47,7 +47,8 @@ export default defineConfig({
     alias: {
       adapters: resolve(__dirname, 'src/adapters'),
       domain: resolve(__dirname, 'src/domain'),
-      sync: resolve(__dirname, 'src/sync')
+      sync: resolve(__dirname, 'src/sync'),
+      '@crypto': resolve(__dirname, 'src/crypto')
     }
   },
   envPrefix: 'VITE_',

@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as Y from "yjs";
-import { startYSync } from "./yjsSync";
+import { startYSync, sha256Base64Url } from "./yjsSync";
 import { appendUpdateEncrypted, loadAllUpdatesEncrypted } from "./yjsStorage";
 import { CapacitorStorageAdapter } from "../adapters/storageAdapterCapacitor";
-import { deriveKeysFromSecret } from "../crypto/KeyManager";
+import { deriveKeysFromSecret } from "@crypto/KeyManager";
 import { EncryptedYTransport } from './EncryptedYTransport';
-import { IdentityStore } from '../crypto/identity';
-import { KeyManager } from '../crypto/KeyManager';
+import { IdentityStore } from '@crypto/identity';
+import { KeyManager } from '@crypto/KeyManager';
 
 type Status = "idle" | "hydrating" | "connecting" | "connected" | "error";
 
@@ -55,49 +55,45 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
         // derive per-room keys and a stable tag from the same secret
         const secretB64 = bytesToB64url(secretBytes);
         const keys = await deriveKeysFromSecret(secretB64);
-        const feedKey = "yjs-" + keys.tag; // local namespace for chunk files
-
-        // start Y and hold provider disconnected until persistence catches up
-        const svc = await startYSync({ pairingSecret: secretBytes, signalingUrls, autoConnect: false });
-        svcRef.current = Promise.resolve(svc) as any;
-
-        // hydrate from local encrypted feed, then persist subsequent updates
-        await loadAllUpdatesEncrypted(svc.doc, storage, feedKey, keys.aes);
+        const feedKey = "yjs-" + keys.tag;
 
         const tag = await sha256Base64Url(secretBytes);
-        const room = tag.slice(0, 32); // or your existing room id
+        const room = tag.slice(0, 32);
 
-        // ... loadAllUpdates into svc.doc, attach appendUpdate listeners, etc.
+        // start Y and hold provider disconnected until persistence catches up
+        const svc = await startYSync({ room, signalingUrls, autoConnect: false });
+        svcRef.current = Promise.resolve(svc) as any;
 
+        await loadAllUpdatesEncrypted(svc.doc, storage, feedKey, keys.aes);
         const idStore = new IdentityStore();
         const peer = await idStore.loadPeer(room);
+        if (!peer) throw new Error('No peer identity stored for this room');
         const theirKemPkB64 = peer?.kemPkB64; // can be undefined
 
-        if (!peer) {
-            // If this is first pairing on this device, you'll have saved peer in pairing step.
-            // For now: throw or show UX telling user to pair (store peer first).
-            throw new Error('No peer identity stored for this room');
-
-        }
         const km = new KeyManager();
-        // Ensure local Kyber keys exist (you already do this in your tests)
-        await km.getLocalKemPublicKeyB64();  // creates pk/sk if missing
-        // Load local secret & remote pk from storage blobs
-        const mySkBlob = await (km as any).storage.loadBlob(`wellium/kem/${(KeyManager as any).prototype.constructor.name ?? 'ML-KEM-1024'}/sk`).catch(() => undefined);
-        if (!mySkBlob) throw new Error('No local Kyber secret');
-        const myKemSkB64 = new TextDecoder().decode(mySkBlob);
-
         // ml-kem provider (you already load it in KeyManager and set as default)
         const kem = (KeyManager as any).kemRegistry?.get?.() ?? { name: 'ML-KEM-1024' }; // or import from wherever you register it
 
+        // Ensure local Kyber keys exist (you already do this in your tests)
+        await km.getLocalKemPublicKeyB64();  // creates pk/sk if missing
+        // Load local secret & remote pk from storage blobs
+        const provider = kem.get(); // active KEM provider (Kyber or fallback)
+        const skBlob = await (km as any).storage.loadBlob(`wellium/kem/${provider.name}/sk`);
+        if (!skBlob) throw new Error('No local KEM secret');
+        const myKemSkB64 = new TextDecoder().decode(skBlob);
+
+
         // Start encrypted bridge
         const enc = new EncryptedYTransport(
-            svc.provider as any,  // dummy doc provider
-            svc.doc,              // real doc
-            kem,
+            svc.provider as any,
+            svc.doc,
+            provider,
             myKemSkB64,
             peer.kemPkB64,
-            theirKemPkB64
+            km,                 // new
+            secretB64,          // new: pairing secret b64
+            false,              // new: isBootstrapSender (set true on the sender side)
+            undefined           // onReady
         );
         enc.start();
 
@@ -119,7 +115,7 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
     function disconnect() {
         const p = svcRef.current as any;
         if (p && typeof p.then === "function") {
-            p.then(svc => svc.stop()).catch(() => { });
+            p.then((svc: Awaited<ReturnType<typeof startYSync>>) => svc.stop()).catch(() => { });
         }
         setYDoc(undefined);
         setYMap(undefined);

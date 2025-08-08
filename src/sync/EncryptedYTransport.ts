@@ -1,15 +1,16 @@
 // src/sync/EncryptedYTransport.ts (mesh‑aware)
 import * as Y from 'yjs';
-import { PeerSession, type WireMsg } from '../crypto/session';
-import { b64urlToBytes, bytesToB64url, KeyManager } from '../crypto/KeyManager';
-import type { KemProvider } from '../crypto/KeyManager';
+import { PeerSession, type WireMsg } from '@crypto/session';
+import { b64urlToBytes, bytesToB64url, KeyManager } from '@crypto/KeyManager';
+import type { KemProvider } from '@crypto/KeyManager';
 
 /* ------------------------------------------------------------------
  * Extra message kind for initial bootstrap
  * t = "b"  –  payload is base64url invitation produced by
  *              KeyManager.exportInvitationForPeer().
  * ------------------------------------------------------------------ */
-const MSG_BOOTSTRAP = 'b';
+const MSG_BOOTSTRAP = 'b' as const;
+type BootstrapMsg = { t: typeof MSG_BOOTSTRAP; p: string };
 
 const ROTATE_EVERY_UPDATES = 500;
 const ROTATE_EVERY_MS = 5 * 60_000;
@@ -20,6 +21,13 @@ const ROTATE_EVERY_MS = 5 * 60_000;
  * not need to copy JSON manually.
  * ------------------------------------------------------------------ */
 export class EncryptedYTransport {
+    private peerScanTimer?: any;
+
+    private observePeerChanges() {
+        // y-webrtc doesn’t expose a stable event for every lib/vers; poll is fine
+        this.peerScanTimer = setInterval(() => this.hookExistingPeers(), 1000);
+    }
+
     private peers = new Map<string, {
         peer: any;
         session: PeerSession;
@@ -51,6 +59,7 @@ export class EncryptedYTransport {
     }
     stop() {
         this.realDoc.off('update', this.onDocUpdate);
+        if (this.peerScanTimer) clearInterval(this.peerScanTimer);
         for (const e of this.peers.values()) {
             try { e.peer.off('data', this.onData); } catch { }
             if (e.rotateTimer) clearTimeout(e.rotateTimer);
@@ -92,14 +101,22 @@ export class EncryptedYTransport {
     private onData = async (raw: ArrayBuffer | Uint8Array | string) => {
         try {
             const text = typeof raw === 'string' ? raw : new TextDecoder().decode(raw as ArrayBuffer);
-            const msg = JSON.parse(text) as WireMsg | { t: string, p: string };
+            const msg = JSON.parse(text) as WireMsg | BootstrapMsg;
             if ((msg as any).t === MSG_BOOTSTRAP) {
-                const payloadB64 = (msg as any).p as string;
-                const secret = await this.km.importInvitationFromPeer(payloadB64);
-                localStorage.setItem('welliuᴍ/pairing-secret', secret);
-                this.onReady?.();
+                const b64 = (msg as any).p as string;
+                const ct = b64urlToBytes(b64);
+                // open with the *sending* peer's session (any established will do)
+                for (const e of this.peers.values()) if (e.established) {
+                    const pt = await e.session.open(ct);
+                    const invitationB64 = new TextDecoder().decode(pt);
+                    const secret = await this.km.importInvitationFromPeer(invitationB64);
+                    localStorage.setItem('welliuᴍ/pairing-secret', secret);
+                    this.onReady?.();
+                    break;
+                }
                 return;
             }
+
             /* existing hs/u flow */
             if (msg.t === 'hs1') return; // noop
             if (msg.t === 'hs2') {
@@ -127,8 +144,8 @@ export class EncryptedYTransport {
         try {
             const invitation = await this.km.exportInvitationForPeer(this.theirKemPkB64, this.pairingSecretB64);
             const pt = new TextEncoder().encode(invitation);
-            const ct = await e.session.seal(pt);
-            e.peer.send(JSON.stringify({ t: MSG_BOOTSTRAP, p: bytesToB64url(ct) }));
+            const ctBlob = await e.session.seal(pt);
+            e.peer.send(JSON.stringify({ t: MSG_BOOTSTRAP, p: bytesToB64url(ctBlob) }));
             this.bootstrapSent = true;
         } catch {/* ignore */ }
     }

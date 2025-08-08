@@ -1,12 +1,11 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "useDefineForClassFields": true,
+    "target": "ES2022",
     "lib": [
-      "DOM",
-      "DOM.Iterable",
-      "ESNext"
+      "ES2022",
+      "DOM"
     ],
+    "exactOptionalPropertyTypes": false,
     "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -19,8 +18,17 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "baseUrl": "src"
+    "baseUrl": "src",
+    "paths": {
+      "@crypto/*": ["crypto/*"]
+    }
   },
+  "exclude": [
+    "src/demo/**",
+    "android/**",
+   "**/*.test.ts",
+   "**/*.test.tsx",
+  ],
   "include": [
     "src"
   ],

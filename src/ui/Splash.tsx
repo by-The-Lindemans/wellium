@@ -90,7 +90,6 @@ const Splash: React.FC<Props> = ({ duration = 2000, onDone }) => {
             }
         };
 
-        // @ts-expect-error: fonts may not exist in older TS lib targets
         const fontsReady = document.fonts?.ready || Promise.resolve();
 
         (async () => {
@@ -164,7 +163,7 @@ const Splash: React.FC<Props> = ({ duration = 2000, onDone }) => {
                 }}
                 onAnimationEnd={(e) => {
                     const el = e.target as HTMLElement;
-                    if ((e as AnimationEvent).animationName === 'wl-fade' && el.classList.contains('wl-curtain')) {
+                    if ((e as unknown as AnimationEvent).animationName === 'wl-fade' && el.classList.contains('wl-curtain')) {
                         onDone();
                     }
                 }}
@@ -187,7 +186,7 @@ const Splash: React.FC<Props> = ({ duration = 2000, onDone }) => {
                         <g
                             className={['wl-anim', playAnim && !fixed ? 'scaleing' : '', doFade ? 'fade' : ''].join(' ').trim()}
                             onAnimationEnd={(e) => {
-                                if ((e as AnimationEvent).animationName === 'wl-intro') setFixed(true);
+                                if ((e as unknown as AnimationEvent).animationName === 'wl-intro') setFixed(true);
                             }}
                             style={fixed ? { transform: 'none' } : undefined}
                         >

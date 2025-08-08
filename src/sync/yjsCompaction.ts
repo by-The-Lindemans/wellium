@@ -1,5 +1,5 @@
 import * as Y from "yjs";
-import { StorageAdapter } from "../adapters/storageAdapter";
+import { CapacitorStorageAdapter } from "../adapters/storageAdapterCapacitor";
 import { appendUpdate, loadAllUpdates } from "./yjsStorage";
 
 export async function snapshot(doc: Y.Doc): Promise<Uint8Array> {
@@ -8,7 +8,7 @@ export async function snapshot(doc: Y.Doc): Promise<Uint8Array> {
 
 export async function compactIfLarge(
     doc: Y.Doc,
-    store: StorageAdapter,
+    store: CapacitorStorageAdapter,
     key: string,
     maxBytes = 8 * 1024 * 1024
 ) {
@@ -25,7 +25,7 @@ export async function compactIfLarge(
 
 export async function sealDay(
     doc: Y.Doc,
-    store: StorageAdapter,
+    store: CapacitorStorageAdapter,
     ledgerKey: string,
     signer: (bytes: Uint8Array) => Promise<Uint8Array>
 ) {
@@ -37,7 +37,7 @@ export async function sealDay(
     await store.saveBlob(ledgerKey, record);
 }
 
-async function safeLoad(store: StorageAdapter, key: string): Promise<Uint8Array> {
+async function safeLoad(store: CapacitorStorageAdapter, key: string): Promise<Uint8Array> {
     try { return await store.loadBlob(key); } catch { return new Uint8Array(); }
 }
 function concat(a: Uint8Array, b: Uint8Array) {

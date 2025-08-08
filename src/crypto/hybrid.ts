@@ -1,4 +1,6 @@
 import { sha256 } from '@noble/hashes/sha256';
+import { buf } from './bytes';
+
 
 export async function hkdfExtractExpand(
     ikm: Uint8Array,
@@ -8,12 +10,8 @@ export async function hkdfExtractExpand(
 ): Promise<Uint8Array> {
     // Use WebCrypto HKDF (preferred). Falls back to noble if needed.
     const subtle = crypto.subtle;
-    const ikmKey = await subtle.importKey('raw', ikm, 'HKDF', false, ['deriveBits']);
-    const bits = await subtle.deriveBits(
-        { name: 'HKDF', hash: 'SHA-256', salt, info },
-        ikmKey,
-        length * 8
-    );
+    const ikmKey = await subtle.importKey('raw', buf(ikm), 'HKDF', false, ['deriveBits']);
+    const bits = await subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: buf(salt), info: buf(info) }, ikmKey, length * 8);
     return new Uint8Array(bits);
 }
 

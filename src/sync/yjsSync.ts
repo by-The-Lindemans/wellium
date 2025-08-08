@@ -1,9 +1,10 @@
 import * as Y from 'yjs';
 import { WebrtcProvider } from 'y-webrtc';
+import { buf } from '@crypto/bytes';
 
 // Base64URL(SHA-256(bytes)) so the relay never sees a human room name.
 export async function sha256Base64Url(bytes: Uint8Array): Promise<string> {
-    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buf(bytes)));
     return btoa(String.fromCharCode(...digest)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 

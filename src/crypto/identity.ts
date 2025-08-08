@@ -1,6 +1,7 @@
 // src/crypto/identity.ts
 import { CapacitorStorageAdapter } from '../adapters/storageAdapterCapacitor';
 import { bytesToB64url, b64urlToBytes } from './KeyManager';
+import { buf } from './bytes';
 
 export type PeerIdentity = {
     kemPkB64: string;       // remote Kyber public key (base64url)
@@ -34,7 +35,7 @@ export class IdentityStore {
 
 export async function kyberFingerprintB64url(pkB64: string): Promise<string> {
     const pk = b64urlToBytes(pkB64);
-    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', pk));
+    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buf(pk)));
     return bytesToB64url(digest.slice(0, 10)); // short 80-bit tag for UX
 }
 

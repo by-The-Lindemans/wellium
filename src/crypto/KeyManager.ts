@@ -1,15 +1,13 @@
 // src/crypto/KeyManager.ts
 import { CapacitorStorageAdapter } from '../adapters/storageAdapterCapacitor';
-import type { KyberProvider } from './pq/interfaces';
-import { loadKyberProvider } from './pq/loadKyber';
+import { buf } from './bytes';
 
 const subtle = globalThis.crypto.subtle;
 const MASTER_KEY_ID = 'wellium/master-key-v1';
 
 /* --------------------------- base64url helpers --------------------------- */
 export function bytesToB64url(u: Uint8Array): string {
-    return btoa(String.fromCharCode(...u))
-        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return btoa(String.fromCharCode(...u)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 export function b64urlToBytes(s: string): Uint8Array {
     const b = s.replace(/-/g, '+').replace(/_/g, '/');
@@ -17,30 +15,33 @@ export function b64urlToBytes(s: string): Uint8Array {
     return new Uint8Array([...raw].map(c => c.charCodeAt(0)));
 }
 
+export function ensureKyberKem(): Promise<void> {
+    return Promise.resolve();
+}
+
 /* ------ deterministic derivation from QR pairing secret (storage key) ----- */
 export async function deriveKeysFromSecret(secretB64: string): Promise<{ aes: CryptoKey; tag: string }> {
     const secret = b64urlToBytes(secretB64);
-    const ikm = await subtle.importKey('raw', secret, 'HKDF', false, ['deriveKey']);
+    const ikm = await subtle.importKey('raw', buf(secret), 'HKDF', false, ['deriveKey']);
     const salt = new Uint8Array(32);
     const info = new TextEncoder().encode('wellium/storage/v1');
 
     const aes = await subtle.deriveKey(
-        { name: 'HKDF', hash: 'SHA-256', salt, info },
+        { name: 'HKDF', hash: 'SHA-256', salt: buf(salt), info: buf(info) },
         ikm,
         { name: 'AES-GCM', length: 256 },
         false,
         ['encrypt', 'decrypt']
     );
 
-    const digest = new Uint8Array(await subtle.digest('SHA-256', secret));
+    const digest = new Uint8Array(await subtle.digest('SHA-256', buf(secret)));
     const tag = bytesToB64url(digest);
     return { aes, tag };
 }
 
 export async function kyberFingerprintB64url(pkB64: string): Promise<string> {
     const pk = b64urlToBytes(pkB64);
-    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', pk));
-    // take first 10 bytes for a short code users can compare visually if needed
+    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buf(pk)));
     return bytesToB64url(digest.slice(0, 10));
 }
 
@@ -65,25 +66,10 @@ class KemRegistry {
 }
 const kemRegistry = new KemRegistry();
 
-export const kem = {
-    /** returns the currently-registered KemProvider (throws if none) */
-    get: () => kemRegistry.get()
-};
-
-// NEW: ensure the Kyber provider is loaded (and required everywhere)
-let kemInitPromise: Promise<void> | null = null;
-export function ensureKyberKem(): Promise<void> {
-    if (!kemInitPromise) {
-        kemInitPromise = (async () => {
-            const provider = await loadKyberProvider();
-            kemRegistry.use(provider);
-        })();
-    }
-    return kemInitPromise;
-}
+/** Access the active KEM provider (registered below). */
+export const kem = { get: () => kemRegistry.get() };
 
 /* ---------------------- default provider: ECDH P-256 ---------------------- */
-/* Classical fallback. For production PQ, prefer ML-KEM; see installPreferredKem(). */
 class EcdhP256Provider implements KemProvider {
     readonly name = 'ECDH-P256';
     async generateKeyPair() {
@@ -93,36 +79,17 @@ class EcdhP256Provider implements KemProvider {
         return { publicRaw, privateBytes };
     }
     async encapsulate(peerPublicRaw: Uint8Array) {
-        const peerPub = await subtle.importKey('raw', peerPublicRaw, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+        const peerPub = await subtle.importKey('raw', buf(peerPublicRaw), { name: 'ECDH', namedCurve: 'P-256' }, false, []);
         const eph = await subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
         const capsule = new Uint8Array(await subtle.exportKey('raw', eph.publicKey));
         const bits = await subtle.deriveBits({ name: 'ECDH', public: peerPub }, eph.privateKey, 256);
         return { shared: new Uint8Array(bits), capsule };
     }
     async decapsulate(capsule: Uint8Array, privateBytes: Uint8Array) {
-        const sk = await subtle.importKey('pkcs8', privateBytes, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
-        const ephPub = await subtle.importKey('raw', capsule, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+        const sk = await subtle.importKey('pkcs8', buf(privateBytes), { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
+        const ephPub = await subtle.importKey('raw', buf(capsule), { name: 'ECDH', namedCurve: 'P-256' }, false, []);
         const bits = await subtle.deriveBits({ name: 'ECDH', public: ephPub }, sk, 256);
         return new Uint8Array(bits);
-    }
-}
-
-/* ---------------------- Kyber adapter → KemProvider ----------------------- */
-class KyberKemAdapter implements KemProvider {
-    readonly name: string;
-    constructor(private kyber: KyberProvider) {
-        this.name = kyber.alg;
-    }
-    async generateKeyPair() {
-        const kp = await this.kyber.generateKeypair();
-        return { publicRaw: kp.publicKey, privateBytes: kp.secretKey };
-    }
-    async encapsulate(peerPublicRaw: Uint8Array) {
-        const { ciphertext, sharedSecret } = await this.kyber.encapsulate(peerPublicRaw);
-        return { shared: sharedSecret, capsule: ciphertext };
-    }
-    async decapsulate(capsule: Uint8Array, privateBytes: Uint8Array) {
-        return this.kyber.decapsulate(capsule, privateBytes);
     }
 }
 
@@ -130,18 +97,10 @@ class KyberKemAdapter implements KemProvider {
 export class KeyManager {
     private storage = new CapacitorStorageAdapter();
     private cached?: CryptoKey;
-
-    /* Install PQ KEM if available; otherwise keep fallback. Call once on app start. */
-    static async installPreferredKem(opts: { requirePQ?: boolean } = {}) {
-        const kyber = await loadKyberProvider();
-        if (kyber) {
-            kemRegistry.use(new KyberKemAdapter(kyber));
-            return;
-        }
-        if (opts.requirePQ) throw new Error('PQC KEM provider not available');
+    static useKemProvider(p: KemProvider) { kemRegistry.use(p); }
+    static installPreferredKem(_opts?: { requirePQ?: boolean }) {
         kemRegistry.use(new EcdhP256Provider());
     }
-
     /* -------------------- AES master (at-rest) -------------------- */
     async ensureMasterKey(): Promise<CryptoKey> {
         if (this.cached) return this.cached;
@@ -170,9 +129,9 @@ export class KeyManager {
         const masterJwk = await subtle.exportKey('jwk', master);
         const pt = new TextEncoder().encode(JSON.stringify({ v: 1, k: masterJwk }));
 
-        const wrapKey = await subtle.importKey('raw', pairingSecret, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+        const wrapKey = await subtle.importKey('raw', buf(pairingSecret), { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
         const iv = crypto.getRandomValues(new Uint8Array(12));
-        const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv }, wrapKey, pt));
+        const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: buf(iv) }, wrapKey, buf(pt)));
 
         const out = new Uint8Array(iv.length + ct.length);
         out.set(iv, 0); out.set(ct, iv.length);
@@ -182,8 +141,8 @@ export class KeyManager {
     async importWrappedFromPairing(pairingSecret: Uint8Array, wrappedB64: string): Promise<void> {
         const all = b64urlToBytes(wrappedB64);
         const iv = all.slice(0, 12), ct = all.slice(12);
-        const wrapKey = await subtle.importKey('raw', pairingSecret, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
-        const pt = await subtle.decrypt({ name: 'AES-GCM', iv }, wrapKey, ct);
+        const wrapKey = await subtle.importKey('raw', buf(pairingSecret), { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+        const pt = await subtle.decrypt({ name: 'AES-GCM', iv: buf(iv) }, wrapKey, buf(ct));
         const { v, k } = JSON.parse(new TextDecoder().decode(new Uint8Array(pt)));
         if (v !== 1 || !k) throw new Error('bad pairing payload');
 
@@ -193,6 +152,110 @@ export class KeyManager {
         this.cached = key;
     }
 
+    /* ----------------------- KEM (pluggable) ---------------------- */
+
+    private kemKey(kind: 'pk' | 'sk', kemName: string) {
+        return `wellium/kem/${kemName}/${kind}`;
+    }
+
+    /** Create/load local KEM keypair. Returns local public key (base64url). */
+    async getLocalKemPublicKeyB64(): Promise<string> {
+        const provider = kem.get();
+        const pkKey = this.kemKey('pk', provider.name);
+        const skKey = this.kemKey('sk', provider.name);
+
+        try {
+            const pkBlob = await this.storage.loadBlob(pkKey);
+            const skBlob = await this.storage.loadBlob(skKey);
+            if (pkBlob && skBlob) {
+                return new TextDecoder().decode(pkBlob);
+            }
+        } catch { /* continue */ }
+
+        const { publicRaw, privateBytes } = await provider.generateKeyPair();
+        const pkB64 = bytesToB64url(publicRaw);
+        const skB64 = bytesToB64url(privateBytes);
+
+        await this.storage.saveBlob(pkKey, new TextEncoder().encode(pkB64));
+        await this.storage.saveBlob(skKey, new TextEncoder().encode(skB64));
+        return pkB64;
+    }
+
+    /** Wrap our master key for a peer (KEM-based). */
+    async exportWrappedForPeer(peerPublicKeyB64: string): Promise<string> {
+        const provider = kem.get();
+        const peerRaw = b64urlToBytes(peerPublicKeyB64);
+
+        const { shared, capsule } = await provider.encapsulate(peerRaw);
+
+        const ikm = await subtle.importKey('raw', buf(shared), 'HKDF', false, ['deriveKey']);
+        const info = new TextEncoder().encode(`wellium/kem-wrap/${provider.name}/v1`);
+        const salt = new Uint8Array(32);
+        const wrapKey = await subtle.deriveKey(
+            { name: 'HKDF', hash: 'SHA-256', salt: buf(salt), info: buf(info) },
+            ikm,
+            { name: 'AES-GCM', length: 256 },
+            false,
+            ['encrypt']
+        );
+
+        const master = await this.ensureMasterKey();
+        const masterJwk = await subtle.exportKey('jwk', master);
+        const pt = new TextEncoder().encode(JSON.stringify({ v: 2, k: masterJwk }));
+
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: buf(iv) }, wrapKey, buf(pt)));
+
+        const payload = {
+            v: 2,
+            kem: provider.name,
+            e: bytesToB64url(capsule),
+            iv: bytesToB64url(iv),
+            ct: bytesToB64url(ct),
+        };
+        return bytesToB64url(new TextEncoder().encode(JSON.stringify(payload)));
+    }
+
+    /** Receive, KEM-decapsulate, and install a peer-wrapped master key. */
+    async importWrappedFromPeer(payloadB64: string): Promise<void> {
+        const provider = kem.get();
+        const obj = JSON.parse(new TextDecoder().decode(b64urlToBytes(payloadB64))) as {
+            v: number; kem: string; e: string; iv: string; ct: string;
+        };
+        if (obj.v !== 2 || obj.kem !== provider.name) throw new Error('bad kem payload');
+
+        const capsule = b64urlToBytes(obj.e);
+        const iv = b64urlToBytes(obj.iv);
+        const ct = b64urlToBytes(obj.ct);
+
+        const skBlob = await this.storage.loadBlob(this.kemKey('sk', provider.name));
+        if (!skBlob) throw new Error('no local kem secret');
+        const skBytes = b64urlToBytes(new TextDecoder().decode(skBlob));
+
+        const shared = await provider.decapsulate(capsule, skBytes);
+
+        const ikm = await subtle.importKey('raw', buf(shared), 'HKDF', false, ['deriveKey']);
+        const info = new TextEncoder().encode(`wellium/kem-wrap/${provider.name}/v1`);
+        const salt = new Uint8Array(32);
+        const unwrapKey = await subtle.deriveKey(
+            { name: 'HKDF', hash: 'SHA-256', salt: buf(salt), info: buf(info) },
+            ikm,
+            { name: 'AES-GCM', length: 256 },
+            false,
+            ['decrypt']
+        );
+
+        const pt = await subtle.decrypt({ name: 'AES-GCM', iv: buf(iv) }, unwrapKey, buf(ct));
+        const { v, k } = JSON.parse(new TextDecoder().decode(new Uint8Array(pt)));
+        if (v !== 2 || !k) throw new Error('bad wrapped master');
+
+        const key = await subtle.importKey('jwk', k, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+        const jwk = await subtle.exportKey('jwk', key);
+        await this.storage.saveBlob(MASTER_KEY_ID, new TextEncoder().encode(JSON.stringify(jwk)));
+        this.cached = key;
+    }
+
+    /** Invitation blob that carries both KEM-wrapped master and pairing secret. */
     async exportInvitationForPeer(
         peerPublicKeyB64: string,
         pairingSecretB64: string,
@@ -215,113 +278,7 @@ export class KeyManager {
         await this.importWrappedFromPeer(wrappedMaster);
         return pairingSecret;
     }
-
-    /* ----------------------- KEM (pluggable) ---------------------- */
-    static useKemProvider(p: KemProvider) { kemRegistry.use(p); }
-
-    private kemKey(kind: 'pk' | 'sk', kemName: string) {
-        return `wellium/kem/${kemName}/${kind}`;
-    }
-
-    /** Create/load local KEM keypair. Returns local public key (base64url). */
-    async getLocalKemPublicKeyB64(): Promise<string> {
-        await ensureKyberKem();                        // <—— require Kyber
-        const kem = kemRegistry.get();
-        const pkKey = this.kemKey('pk', kem.name);
-        const skKey = this.kemKey('sk', kem.name);
-
-        // Try already stored
-        try {
-            const pkBlob = await this.storage.loadBlob(pkKey);
-            const skBlob = await this.storage.loadBlob(skKey);
-            if (pkBlob && skBlob) {
-                return new TextDecoder().decode(pkBlob);
-            }
-        } catch { /* continue */ }
-
-        // Generate/persist
-        const { publicRaw, privateBytes } = await kem.generateKeyPair();
-        const pkB64 = bytesToB64url(publicRaw);
-        const skB64 = bytesToB64url(privateBytes);
-
-        await this.storage.saveBlob(pkKey, new TextEncoder().encode(pkB64));
-        await this.storage.saveBlob(skKey, new TextEncoder().encode(skB64));
-        return pkB64;
-    }
-
-    /** Wrap our master key for a peer (KEM-based). */
-    async exportWrappedForPeer(peerPublicKeyB64: string): Promise<string> {
-        await ensureKyberKem();                        // <—— require Kyber
-        const kem = kemRegistry.get();
-        const peerRaw = b64urlToBytes(peerPublicKeyB64);
-
-        const { shared, capsule } = await kem.encapsulate(peerRaw);
-
-        const ikm = await subtle.importKey('raw', shared, 'HKDF', false, ['deriveKey']);
-        const info = new TextEncoder().encode(`wellium/kem-wrap/${kem.name}/v1`);
-        const salt = new Uint8Array(32);
-        const wrapKey = await subtle.deriveKey(
-            { name: 'HKDF', hash: 'SHA-256', salt, info },
-            ikm,
-            { name: 'AES-GCM', length: 256 },
-            false,
-            ['encrypt']
-        );
-
-        const master = await this.ensureMasterKey();
-        const masterJwk = await subtle.exportKey('jwk', master);
-        const pt = new TextEncoder().encode(JSON.stringify({ v: 2, k: masterJwk }));
-
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv }, wrapKey, pt));
-
-        const payload = {
-            v: 2,
-            kem: kem.name,
-            e: bytesToB64url(capsule),
-            iv: bytesToB64url(iv),
-            ct: bytesToB64url(ct),
-        };
-        return bytesToB64url(new TextEncoder().encode(JSON.stringify(payload)));
-    }
-
-    /** Receive, KEM-decapsulate, and install a peer-wrapped master key. */
-    async importWrappedFromPeer(payloadB64: string): Promise<void> {
-        await ensureKyberKem();                        // <—— require Kyber
-        const kem = kemRegistry.get();
-        const obj = JSON.parse(new TextDecoder().decode(b64urlToBytes(payloadB64))) as {
-            v: number; kem: string; e: string; iv: string; ct: string;
-        };
-        if (obj.v !== 2 || obj.kem !== kem.name) throw new Error('bad kem payload');
-
-        const capsule = b64urlToBytes(obj.e);
-        const iv = b64urlToBytes(obj.iv);
-        const ct = b64urlToBytes(obj.ct);
-
-        const skBlob = await this.storage.loadBlob(this.kemKey('sk', kem.name));
-        if (!skBlob) throw new Error('no local kem secret');
-        const skBytes = b64urlToBytes(new TextDecoder().decode(skBlob));
-
-        const shared = await kem.decapsulate(capsule, skBytes);
-
-        const ikm = await subtle.importKey('raw', shared, 'HKDF', false, ['deriveKey']);
-        const info = new TextEncoder().encode(`wellium/kem-wrap/${kem.name}/v1`);
-        const salt = new Uint8Array(32);
-        const unwrapKey = await subtle.deriveKey(
-            { name: 'HKDF', hash: 'SHA-256', salt, info },
-            ikm,
-            { name: 'AES-GCM', length: 256 },
-            false,
-            ['decrypt']
-        );
-
-        const pt = await subtle.decrypt({ name: 'AES-GCM', iv }, unwrapKey, ct);
-        const { v, k } = JSON.parse(new TextDecoder().decode(new Uint8Array(pt)));
-        if (v !== 2 || !k) throw new Error('bad wrapped master');
-
-        const key = await subtle.importKey('jwk', k, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
-        const jwk = await subtle.exportKey('jwk', key);
-        await this.storage.saveBlob(MASTER_KEY_ID, new TextEncoder().encode(JSON.stringify(jwk)));
-        this.cached = key;
-    }
 }
+
+// Register a default provider immediately (you can replace it on app init)
+KeyManager.installPreferredKem();

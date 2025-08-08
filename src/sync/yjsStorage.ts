@@ -1,22 +1,7 @@
-import * as Y from "yjs";
+// src/sync/yjsStorage.ts
+import * as Y from 'yjs';
 import { CapacitorStorageAdapter } from '../adapters/storageAdapterCapacitor';
-
-
-
-async function encryptAtRest(key: CryptoKey, u: Uint8Array): Promise<Uint8Array> {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, u));
-  const out = new Uint8Array(iv.byteLength + ct.byteLength);
-  out.set(iv, 0);
-  out.set(ct, iv.byteLength);
-  return out;
-}
-async function decryptAtRest(key: CryptoKey, blob: Uint8Array): Promise<Uint8Array> {
-  const iv = blob.slice(0, 12);
-  const ct = blob.slice(12);
-  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
-  return new Uint8Array(pt);
-}
+import { buf } from '@crypto/bytes';
 
 export async function appendUpdateEncrypted(
     store: CapacitorStorageAdapter,
@@ -25,7 +10,7 @@ export async function appendUpdateEncrypted(
     u: Uint8Array
 ) {
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, u));
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: buf(iv) }, key, buf(u)));
     const out = new Uint8Array(iv.length + ct.length);
     out.set(iv, 0); out.set(ct, iv.length);
     await store.appendChunk(feedKey, out);
@@ -41,7 +26,7 @@ export async function loadAllUpdatesEncrypted(
     for await (const chunk of store.iterChunks(feedKey, { from })) {
         const iv = chunk.slice(0, 12);
         const ct = chunk.slice(12);
-        const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+        const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf(iv) }, key, buf(ct));
         Y.applyUpdate(doc, new Uint8Array(pt));
     }
 }
@@ -79,21 +64,21 @@ export async function loadAllUpdates(
     store: CapacitorStorageAdapter,
     key: string
 ) {
-    let buf: Uint8Array;
+    let bufAll: Uint8Array;
     try {
-        buf = await store.loadBlob(key);
+        bufAll = await store.loadBlob(key);
     } catch {
         return; // first run; nothing saved yet
     }
 
     let off = 0;
-    while (off + 4 <= buf.length) {
-        const view = new DataView(buf.buffer, buf.byteOffset + off, 4);
+    while (off + 4 <= bufAll.length) {
+        const view = new DataView(bufAll.buffer, bufAll.byteOffset + off, 4);
         const len = view.getUint32(0, true);
         const start = off + 4;
         const end = start + len;
-        if (end > buf.length) break;
-        const update = buf.slice(start, end);
+        if (end > bufAll.length) break;
+        const update = bufAll.slice(start, end);
         Y.applyUpdate(doc, update);
         off = end;
     }

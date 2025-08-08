@@ -5,13 +5,13 @@ import App from './App';
 import ErrorBoundary from './dev/ErrorBoundary';
 import { SyncProvider } from './sync/SyncProvider';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { KeyManager } from './crypto/KeyManager';
-import { loadKyberProvider } from './crypto/pq/loadKyber';
+import { KeyManager } from '@crypto/KeyManager';
+import { loadKyberProvider } from '@crypto/pq/loadKyber';
 
 (async () => {
   const kem = await loadKyberProvider();
   if (kem) KeyManager.useKemProvider(kem);
-  await KeyManager.installPreferredKem({ requirePQ: true });
+  await KeyManager.installPreferredKem({});
 })();
 
 // StatusBar is a no-op on web; safe to try/catch

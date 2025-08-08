@@ -15,7 +15,8 @@
     "preview": "vite preview",
     "test.e2e": "cypress run",
     "test.unit": "vitest",
-    "lint": "eslint"
+    "lint": "eslint",
+    "android:reinstall": "rm -rf dist && VITE_BUILD_TIME=$(date -u +%FT%TZ) vite build && npx cap sync android && adb uninstall com.lndmn.wellium || true && (cd android && ./gradlew clean :app:installDebug)"
   },
   "dependencies": {
     "@capacitor-community/electron": "^5.0.1",
@@ -67,7 +68,6 @@
     "@vitejs/plugin-legacy": "^7.1.0",
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^9.2.0",
-    "cordova-res": "^0.15.4",
     "cypress": "^14.5.3",
     "eslint": "^9.32.0",
     "eslint-plugin-react": "^7.37.5",
