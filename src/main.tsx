@@ -9,6 +9,11 @@ import { KeyManager } from '@crypto/KeyManager';
 import { loadKyberProvider } from '@crypto/pq/loadKyber';
 
 (async () => {
+  try {
+    await StatusBar.setOverlaysWebView({ overlay: false });
+    await StatusBar.setStyle({ style: Style.Dark });            // white text if your bar is dark
+    await StatusBar.setBackgroundColor({ color: '#000000' });
+  } catch { }
   const kem = await loadKyberProvider();
   if (kem) KeyManager.useKemProvider(kem);
   await KeyManager.installPreferredKem({});
