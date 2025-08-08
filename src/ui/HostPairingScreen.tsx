@@ -15,7 +15,7 @@ import { IdentityStore, kyberFingerprintB64url } from '../crypto/identity';
 import { sha256Base64Url } from '../sync/yjsSync';
 
 const Scanner = registerPlugin<CapacitorBarcodeScannerPlugin>('BarcodeScanner');
-const SECRET_KEY = 'welliuᴍ/pairing-secret';
+const SECRET_KEY = 'wellium/pairing-secret';
 
 const HostPairingScreen: React.FC = () => {
     const [msg, setMsg] = React.useState<string | null>(null);

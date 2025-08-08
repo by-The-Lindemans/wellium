@@ -5,6 +5,7 @@ import {
     IonButtons, IonBackButton, IonContent, IonButton, IonList, IonItem, IonLabel
 } from '@ionic/react';
 import { Capacitor } from '@capacitor/core';
+import { useNavigate } from 'react-router';
 
 const isMobileNative = () => {
     const p = Capacitor.getPlatform();
@@ -12,6 +13,7 @@ const isMobileNative = () => {
 };
 
 const SettingsPage: React.FC = () => {
+    const navigate = useNavigate();
     const supportsScan = isMobileNative();
 
     return (
@@ -31,7 +33,10 @@ const SettingsPage: React.FC = () => {
             <IonContent className="ion-padding">
 
                 {supportsScan && (
-                    <IonButton expand="block" routerLink="/pair/scan" routerDirection="forward">
+                    <IonButton
+                        expand="block"
+                        onClick={() => navigate('/pairing')}  // <-- was /pair/scan
+                    >
                         Add / Scan device
                     </IonButton>
                 )}
