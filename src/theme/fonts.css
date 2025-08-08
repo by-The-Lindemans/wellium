@@ -1,0 +1,9 @@
+@font-face {
+    font-family: "Code New Roman";
+    src:
+        url("/fonts/CodeNewRoman-Regular.woff2") format("woff2"),
+        url("/fonts/CodeNewRoman-Regular.woff") format("woff");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}

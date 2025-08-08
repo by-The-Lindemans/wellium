@@ -7,13 +7,15 @@ import { SyncProvider } from './sync/SyncProvider';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { KeyManager } from '@crypto/KeyManager';
 import { loadKyberProvider } from '@crypto/pq/loadKyber';
+import { Capacitor } from '@capacitor/core';
+import './theme/fonts.css';
 
 (async () => {
-  try {
+  if (Capacitor.getPlatform() === 'android') {
     await StatusBar.setOverlaysWebView({ overlay: false });
-    await StatusBar.setStyle({ style: Style.Dark });            // white text if your bar is dark
+    await StatusBar.setStyle({ style: Style.Dark });
     await StatusBar.setBackgroundColor({ color: '#000000' });
-  } catch { }
+  }
   const kem = await loadKyberProvider();
   if (kem) KeyManager.useKemProvider(kem);
   await KeyManager.installPreferredKem({});

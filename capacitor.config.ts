@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.lndmn.wellium',
   appName: 'wellium',
   webDir: 'dist',
-  server: { androidScheme: 'https' }
+ // server: { androidScheme: 'https' }
 };
 
 export default config;
