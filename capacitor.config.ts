@@ -8,7 +8,15 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: {
       launchShowDuration: 0,
-      //launchAutoHide: true
+      launchAutoHide: true,
+      showSpinner: false,
+      splashFullScreen: false,
+      splashImmersive: false
+    },
+    StatusBar: {
+      overlaysWebView: false,    // push webview below status bar
+      style: 'DARK',
+      backgroundColor: '#000000'
     }
   }
 };

@@ -13,7 +13,7 @@ import './theme/fonts.css';
 
 (async () => {
   if (Capacitor.getPlatform() === 'android') {
-    await StatusBar.setOverlaysWebView({ overlay: true });
+    await StatusBar.setOverlaysWebView({ overlay: false });
     await StatusBar.setStyle({ style: Style.Dark });
     await StatusBar.setBackgroundColor({ color: '#000000' });
   }
@@ -28,9 +28,22 @@ if (Capacitor.getPlatform() === 'android') {
       window.history.back();
     }
   });
+
+  CapApp.addListener('appStateChange', async ({ isActive }) => {
+    if (isActive) {
+      await StatusBar.setOverlaysWebView({ overlay: false });
+      await StatusBar.setStyle({ style: Style.Dark });
+      await StatusBar.setBackgroundColor({ color: '#000000' });
+    }
+  });
 }
 
-// StatusBar is a no-op on web; safe to try/catch
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && Capacitor.getPlatform() === 'android') {
+    StatusBar.setOverlaysWebView({ overlay: false }).catch(() => { });
+  }
+});
+
 if (typeof window !== 'undefined') {
   StatusBar.setStyle({ style: Style.Dark }).catch(() => { });
   StatusBar.setBackgroundColor({ color: '#000000' }).catch(() => { });
