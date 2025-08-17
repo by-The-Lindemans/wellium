@@ -12,7 +12,7 @@ import { KeyManager } from '../crypto/KeyManager';
 import { kyberFingerprintB64url } from '../crypto/identity';
 import { generatePairingSecret } from '../sync/SyncProvider';
 
-const SECRET_KEY = 'welliuᴍ/pairing-secret';
+const SECRET_KEY = 'wellium/pairing-secret';
 
 const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
     const contentRef = useRef<HTMLIonContentElement>(null);

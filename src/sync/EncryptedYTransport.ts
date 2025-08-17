@@ -110,7 +110,7 @@ export class EncryptedYTransport {
                     const pt = await e.session.open(ct);
                     const invitationB64 = new TextDecoder().decode(pt);
                     const secret = await this.km.importInvitationFromPeer(invitationB64);
-                    localStorage.setItem('welliuᴍ/pairing-secret', secret);
+                    localStorage.setItem('wellium/pairing-secret', secret);
                     this.onReady?.();
                     break;
                 }
