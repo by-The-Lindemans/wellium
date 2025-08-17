@@ -2,13 +2,17 @@ import * as Y from 'yjs';
 import { WebrtcProvider } from 'y-webrtc';
 import { buf } from '@crypto/bytes';
 
-// Base64URL(SHA-256(bytes)) so the relay never sees a human room name.
+/** Canonical room-tag length (both sides must slice to the same). */
+export const ROOM_TAG_LEN = 32;
+
+/** Base64URL(SHA-256(bytes)) so the relay never sees a human room name. */
 export async function sha256Base64Url(bytes: Uint8Array): Promise<string> {
     const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buf(bytes)));
-    return btoa(String.fromCharCode(...digest)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return btoa(String.fromCharCode(...digest))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-// Convenience if you store the secret as base64url in localStorage.
+/** Convenience if you store the secret as base64url in localStorage. */
 export async function roomTagFromSecretB64(secretB64: string): Promise<string> {
     const b = secretB64.replace(/-/g, '+').replace(/_/g, '/');
     const raw = atob(b);
@@ -27,37 +31,38 @@ export async function startYSync(opts: {
     signalingUrls: string[];
     autoConnect?: boolean;
 }): Promise<YSync> {
-    const { room, autoConnect = true } = opts;
+    const { room, autoConnect = true, signalingUrls } = opts;
 
     const realDoc = new Y.Doc();
-    const dummyDoc = new Y.Doc();            // <- prevents plaintext sync
+    const dummyDoc = new Y.Doc(); // <- prevents plaintext sync
 
-    dummyDoc.on("update", update => Y.applyUpdate(realDoc, update));
-    realDoc.on("update", update => Y.applyUpdate(dummyDoc, update));
-
+    // mirror updates between real and dummy docs
+    dummyDoc.on('update', update => Y.applyUpdate(realDoc, update));
+    realDoc.on('update', update => Y.applyUpdate(dummyDoc, update));
 
     const provider = new WebrtcProvider(room, dummyDoc, {
-        signaling: [
-            "wss://y-webrtc-signaling-backend.herokuapp.com",
-            "wss://y-webrtc-signaling.fly.dev"
-        ],
+        signaling: (signalingUrls && signalingUrls.length)
+            ? signalingUrls
+            : [
+                'wss://y-webrtc-signaling-backend.herokuapp.com',
+                'wss://y-webrtc-signaling.fly.dev',
+            ],
         peerOpts: {
             iceServers: [
-                { urls: "stun:stun.services.mozilla.com:3478" },
-
-                { urls: "stun:stun.stunprotocol.org:3478" },
-                { urls: "stun:stun.ideasip.com" },
-                { urls: "stun:stun.sipgate.net" },
-                { urls: "stun:stun.fwdnet.net" }
-            ]
+                { urls: 'stun:stun.services.mozilla.com:3478' },
+                { urls: 'stun:stun.stunprotocol.org:3478' },
+                { urls: 'stun:stun.ideasip.com' },
+                { urls: 'stun:stun.sipgate.net' },
+                { urls: 'stun:stun.fwdnet.net' },
+            ],
         },
     });
 
     if (!autoConnect) provider.disconnect();
 
     const stop = () => {
-        try { provider.disconnect(); provider.destroy(); } catch { }
-        try { realDoc.destroy(); dummyDoc.destroy(); } catch { }
+        try { provider.disconnect(); provider.destroy(); } catch { /* ignore */ }
+        try { realDoc.destroy(); dummyDoc.destroy(); } catch { /* ignore */ }
     };
 
     return { doc: realDoc, provider, stop };
