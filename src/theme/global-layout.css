@@ -1,23 +1,21 @@
 /*----------------------------------------------
   GLOBAL LAYOUT – wellium
-  ----------------------------------------------*/
-/* --- SAFE-AREA SETUP (works on iOS, has Android fallback) --- */
-html.md {
-    /* material mode = Android */
-    --wl-safe-top-fallback: 24px;
-    /* pick 24–32px; tweak to taste */
-}
+----------------------------------------------*/
 
+/* Safe-area helpers (no Android fallback now that overlay is off) */
 :root {
-    --wl-safe-top: max(var(--ion-safe-area-top, 0px),
-            env(safe-area-inset-top, 0px),
-            var(--wl-safe-top-fallback, 0px));
-    --wl-safe-bottom: max(var(--ion-safe-area-bottom, 0px),
-            env(safe-area-inset-bottom, 0px),
-            0px);
+    --wl-safe-top: max(var(--ion-safe-area-top, 0px), env(safe-area-inset-top, 0px));
+    --wl-safe-right: env(safe-area-inset-right, 0px);
+    --wl-safe-bottom: max(var(--ion-safe-area-bottom, 0px), env(safe-area-inset-bottom, 0px));
+    --wl-safe-left: env(safe-area-inset-left, 0px);
 }
 
-/* full-viewport shell */
+/* Make any camera/video fills behave nicely by default */
+#root video {
+    object-fit: cover;
+}
+
+/* Full-viewport shell */
 html,
 body,
 ion-app,
@@ -28,7 +26,7 @@ ion-page {
     margin: 0;
 }
 
-/* ----- centred titles ----- */
+/* ----- centered titles ----- */
 ion-toolbar ion-title {
     position: absolute;
     left: 50%;
@@ -45,36 +43,83 @@ ion-toolbar ion-title {
     font-size: 2rem;
 }
 
-/* header tweaks */
+/* Header: no extra top padding (WebView already sits below status bar) */
 ion-header,
 ion-toolbar {
-    --padding-top: var(--wl-safe-top);
-    --min-height: calc(32px + var(--wl-safe-top));
+    --padding-top: 0;
+    --min-height: 56px;
+    /* standard Material toolbar height */
     --justify-content: center;
 }
 
-/* ----- page content centring ----- */
-ion-content::part(scroll) {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    /* horizontal */
-    justify-content: center;
-    /* vertical   */
-    text-align: center;
-    padding-bottom: var(--wl-safe-bottom);
-    min-block-size: 100%;
+/* ----- page content: center until it needs to scroll ----- */
+/* Let ion-content itself manage horizontal padding only */
+ion-content {
+    --padding-start: 0;
+    --padding-end: 0;
 }
 
-/* Make ion-labels inside ion-item stretch instead of shrinking */
+/* The scrollable part acts as a grid that centers when there's space,
+   and naturally scrolls once content exceeds viewport height */
+ion-content::part(scroll) {
+    display: grid;
+    grid-auto-flow: row;
+    gap: 16px;
+    justify-items: center;
+    /* horizontal centering of children */
+    place-content: center;
+    /* centers stack when space allows */
+    min-block-size: 100%;
+    /* key to “center until overflow” */
+    padding-block: 0 var(--wl-safe-bottom);
+    /* no extra top; honor bottom inset */
+    padding-inline: clamp(12px, 4vw, 24px);
+    overscroll-behavior: contain;
+    text-align: center;
+}
+
+/* Scanner sizing WITHOUT adding classes:
+   - :has() matches generic wrappers with a direct <video>/<canvas>
+   - IDs are common html5-qrcode defaults as fallbacks */
+@supports selector(:has(*)) {
+
+    ion-content::part(scroll)>div:has(> video),
+    ion-content::part(scroll)>div:has(> canvas) {
+        width: min(92vw, 520px);
+        min-width: 240px;
+        aspect-ratio: 3 / 4;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #000;
+    }
+}
+
+/* Fallback when :has is unavailable */
+ion-content::part(scroll)>#html5-qrcode,
+ion-content::part(scroll)>#qr-reader,
+ion-content::part(scroll)>#reader {
+    width: min(92vw, 520px);
+    min-width: 240px;
+    aspect-ratio: 3 / 4;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+}
+
+/* Ensure camera fills its box */
+ion-content::part(scroll) video,
+ion-content::part(scroll) canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ----- list & item niceties ----- */
 ion-item>ion-label:not([slot="end"]),
 ion-item[lines="none"]>ion-label:not([slot="end"]) {
     width: 100% !important;
-    /* or width: auto !important; */
     flex: 1 1 auto !important;
-    /* let the label grow */
     min-width: 0 !important;
-    /* prevent overflow when flexing */
 }
 
 ion-item.wl-copy {
@@ -83,62 +128,35 @@ ion-item.wl-copy {
     --inner-padding-start: 0;
     --inner-padding-end: 0;
     --min-height: auto;
-    /* don’t force tall rows */
     --inner-border-width: 0;
-    /* ensure no hairline is drawn */
 }
 
-/* Treat any non-interactive, line-less <ion-item> as a copy row.
-   This removes the reserved start/end gutters that cause the left bias. */
+/* Treat non-interactive, line-less items as “copy rows” */
 ion-item[lines="none"]:not([button]):not([detail]):not([href]) {
-    /* zero outer + inner padding on both sides */
     --padding-start: 0 !important;
     --padding-end: 0 !important;
     --inner-padding-start: 0 !important;
     --inner-padding-end: 0 !important;
-
-    /* tidy up defaults */
     --min-height: auto;
     --inner-border-width: 0;
     --background-focused: transparent;
     --background-hover: transparent;
 }
 
-/* Make the text fill the row and be centered */
 ion-item[lines="none"]:not([button]):not([detail]):not([href]) ion-text,
 ion-item[lines="none"]:not([button]):not([detail]):not([href]) p {
     width: 100%;
     text-align: center;
     margin: 0;
     padding-inline: clamp(8px, 2vw, 16px);
-    /* small, responsive breathing room */
 }
 
-/* Optional: remove extra list padding so the copy row truly spans center */
+/* Optional: remove extra list padding */
 ion-list {
     padding: 0;
-    /* or: --padding-start: 0; --padding-end: 0; */
 }
 
-/* Make the text fill the row and center it */
-ion-item.wl-copy ion-text,
-ion-item.wl-copy p {
-    width: 100%;
-    text-align: center;
-}
-
-/* opt-in scrolling */
-ion-content {
-    overflow: hidden;
-    --padding-start: 0;
-    --padding-end: 0;
-}
-
-ion-content.scroll {
-    overflow-y: auto;
-}
-
-/* centred intro rows */
+/* Centered intro rows */
 ion-item[lines="none"] {
     --inner-padding-start: 0;
     --inner-padding-end: 0;
@@ -152,15 +170,7 @@ ion-item[lines="none"] p {
     text-align: center;
 }
 
-body.statusbar-padding,
-ion-app.statusbar-padding,
-ion-header.statusbar-padding,
-ion-content.statusbar-padding {
-    padding-top: 0 !important;
-    --padding-top: 0 !important;
-}
-
-/* footer spacing */
+/* Footer respects bottom inset */
 ion-footer {
     padding-block-end: calc(env(safe-area-inset-bottom, 0px) + clamp(1.5rem, 1vh, 3rem));
     padding-inline: clamp(1rem, 4vw, 2rem);

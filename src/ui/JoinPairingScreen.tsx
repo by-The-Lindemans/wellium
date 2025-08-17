@@ -17,7 +17,6 @@ const SECRET_KEY = 'welliuᴍ/pairing-secret';
 const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
     const contentRef = useRef<HTMLIonContentElement>(null);
     const introRef = useRef<HTMLDivElement>(null);
-    const footerRef = useRef<HTMLDivElement>(null);
 
     const [side, setSide] = useState(0);
     const [qrUrl, setQrUrl] = useState<string | null>(null);
@@ -29,24 +28,32 @@ const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
         ? 'This is my first wellium device'
         : 'I understand I need to set up on mobile first — continue';
 
-    // measure available square area
+    // Size the QR to available square inside IonContent (exclude intro block)
     useLayoutEffect(() => {
         if (!contentRef.current) return;
 
         const measure = () => {
             const rect = contentRef.current!.getBoundingClientRect();
             const introH = introRef.current?.offsetHeight ?? 0;
-            const footerH = footerRef.current?.offsetHeight ?? 0;
-            const freeH = rect.height - introH - footerH;
+
+            // Free space inside content (footer/header already excluded by Ionic)
+            const freeH = Math.max(0, rect.height - introH);
             const freeW = rect.width;
-            const short = Math.min(freeW, freeH);
-            setSide(Math.max(0, Math.floor(short * 0.9)));
+
+            // Take a comfortable square and clamp it
+            const candidate = Math.floor(Math.min(freeH, freeW) * 0.9);
+            const clamped = Math.max(160, Math.min(candidate, 640)); // tweak min/max if you like
+            setSide(clamped);
         };
 
         measure();
         const ro = new ResizeObserver(measure);
         ro.observe(contentRef.current);
-        return () => ro.disconnect();
+        window.addEventListener('orientationchange', measure);
+        return () => {
+            ro.disconnect();
+            window.removeEventListener('orientationchange', measure);
+        };
     }, []);
 
     // (re)draw QR whenever `side` changes
@@ -56,7 +63,7 @@ const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
         (async () => {
             const km = new KeyManager();
             const kemPk = await km.getLocalKemPublicKeyB64();
-            const kemFp = await kyberFingerprintB64url(kemPk);
+            const kemPkFp = await kyberFingerprintB64url(kemPk);
 
             let secret = localStorage.getItem(SECRET_KEY);
             if (!secret) {
@@ -64,12 +71,12 @@ const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
                 localStorage.setItem(SECRET_KEY, secret);
             }
 
-            const payload = JSON.stringify({ v: 1, pairingSecret: secret, kemPk, kemPkFp: kemFp });
+            const payload = JSON.stringify({ v: 1, pairingSecret: secret, kemPk, kemPkFp });
             const dpr = window.devicePixelRatio || 1;
 
             const url = await QRCode.toDataURL(payload, {
                 margin: 0,
-                width: side * dpr, // physical pixels for crispness
+                width: Math.round(side * dpr), // crisp on high-DPI
             });
 
             setQrUrl(url);
@@ -77,8 +84,7 @@ const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
     }, [side]);
 
     const goToDashboard = () => {
-        // mark onboarding complete so the guard won’t redirect back here
-        localStorage.setItem('wl/onboarding-ok', '1');
+        localStorage.setItem('wl/onboarding-ok', '1'); // so Guard won’t loop back here
         navigate('/', { replace: true });
     };
 
@@ -90,9 +96,10 @@ const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
                 </IonToolbar>
             </IonHeader>
 
-            <IonContent ref={contentRef}>
-                {/* intro paragraph */}
-                <div ref={introRef}>
+            {/* Global CSS already centers until it needs to scroll */}
+            <IonContent ref={contentRef} className="ion-padding">
+                {/* Intro text sits above the QR and is part of the content height */}
+                <div ref={introRef} style={{ maxWidth: 720 }}>
                     <IonList>
                         <IonItem lines="none">
                             <IonText>
@@ -105,21 +112,26 @@ const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
                     </IonList>
                 </div>
 
-                {/* QR */}
+                {/* QR – sized from free space inside content */}
                 {qrUrl && (
                     <img
                         src={qrUrl}
                         alt="pairing qr"
                         width={side}
                         height={side}
-                        style={{ width: side, height: side }}
+                        style={{
+                            width: side,
+                            height: side,
+                            maxWidth: '92vw',
+                            maxHeight: '92vw',
+                        }}
                     />
                 )}
             </IonContent>
 
-            {/* footer CTA always navigates to dashboard */}
+            {/* Footer is anchored by Ionic; no need to subtract it from content height */}
             <IonFooter>
-                <div ref={footerRef} style={{ padding: '12px 16px' }}>
+                <div style={{ padding: '12px 16px', maxWidth: 720, marginInline: 'auto' }}>
                     <IonText>
                         <p>
                             <strong>New here?</strong> If this is your first welliuᴍ device, you don’t need to scan anything.

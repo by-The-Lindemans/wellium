@@ -47,6 +47,7 @@
     "mlkem": "^2.3.1",
     "nanoid": "^5.1.5",
     "peerjs": "^1.5.5",
+    "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.4",
     "react": "^19.1.1",
     "react-dom": "19.1.1",
