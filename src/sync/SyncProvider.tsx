@@ -1,3 +1,4 @@
+// src/sync/SyncProvider.tsx
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import * as Y from 'yjs';
 import { startYSync, roomTagFromSecretB64, ROOM_TAG_LEN } from './yjsSync';
@@ -32,7 +33,7 @@ const SyncContext = createContext<SyncCtx>({
 function b64urlToBytes(s: string): Uint8Array {
     const b = s.replace(/-/g, '+').replace(/_/g, '/');
     const raw = atob(b);
-    return new Uint8Array([...raw].map(c => c.charCodeAt(0)));
+    return new Uint8Array([...raw].map((c) => c.charCodeAt(0)));
 }
 
 export function SyncProvider(props: { signalingUrls: string[]; children: React.ReactNode }) {
@@ -42,7 +43,10 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
     const [error, setError] = useState<string | undefined>();
     const [ydoc, setYDoc] = useState<Y.Doc | undefined>();
     const [ymap, setYMap] = useState<Y.Map<any> | undefined>();
+
     const svcPromiseRef = useRef<Promise<ReturnType<typeof startYSync>> | null>(null);
+    /** cleanup for the current heartbeat (interval + key removal) */
+    const hbCleanupRef = useRef<() => void>();
     const storage = useMemo(() => new CapacitorStorageAdapter(), []);
 
     async function hydrateAndConnect(secretBytes: Uint8Array) {
@@ -64,13 +68,32 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
 
         await loadAllUpdatesEncrypted(svc.doc, storage, feedKey, keys.aes);
 
-        // (optional) expose doc/map to context consumers
+        // ---- minimal add: expose sys map + start heartbeat (and store hb key) ----
+        // Stop any previous heartbeat if we’re reconnecting.
+        try { hbCleanupRef.current?.(); } catch { }
+
+        const sys = svc.doc.getMap('sys');
         setYDoc(svc.doc);
-        setYMap(undefined);
+        setYMap(sys);
+
+        // Heartbeat under a deterministic per-session key
+        const hbKey = `hb:${svc.doc.clientID}`;
+        // Persist the exact key so the join screen can ignore its own heartbeat.
+        try { localStorage.setItem('wl/hb-key', hbKey); } catch { }
+
+        const tick = () => sys.set(hbKey, Date.now());
+        tick();
+        const hbTimer = setInterval(tick, 3000);
+
+        hbCleanupRef.current = () => {
+            try { clearInterval(hbTimer); } catch { }
+            try { sys.delete(hbKey); } catch { }
+            try { localStorage.removeItem('wl/hb-key'); } catch { }
+        };
+        // ---- end minimal add ----
 
         // who sends bootstrap? (scanner does)
         const isBootstrapSender = sessionStorage.getItem('wl/bootstrap-sender') === '1';
-        //if (isBootstrapSender) sessionStorage.removeItem('wl/bootstrap-sender'); testing move
 
         // peer identity (may be missing on responder side)
         const idStore = new IdentityStore();
@@ -121,9 +144,14 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
     }
 
     function disconnect() {
+        // Stop heartbeat and remove our hb key
+        try { hbCleanupRef.current?.(); } catch { }
+
         const p = svcPromiseRef.current;
         if (p && typeof (p as any).then === 'function') {
-            (p as any).then((svc: Awaited<ReturnType<typeof startYSync>>) => svc.stop()).catch(() => { });
+            (p as any)
+                .then((svc: Awaited<ReturnType<typeof startYSync>>) => svc.stop())
+                .catch(() => { });
         }
         svcPromiseRef.current = null;
         setYDoc(undefined);
@@ -132,11 +160,13 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
     }
 
     function clearSavedSecret() {
-        try { localStorage.removeItem(SECRET_KEY); } catch { /* ignore */ }
+        try { localStorage.removeItem(SECRET_KEY); } catch { }
     }
 
     useEffect(() => {
-        const saved = (() => { try { return localStorage.getItem(SECRET_KEY); } catch { return null; } })();
+        const saved = (() => {
+            try { return localStorage.getItem(SECRET_KEY); } catch { return null; }
+        })();
         if (saved) void pairWithSecret(saved);
         return () => disconnect();
         // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -4,6 +4,7 @@ import {
     IonPage, IonHeader, IonToolbar, IonTitle,
     IonButtons, IonBackButton, IonContent, IonText, IonList, IonItem, IonButton
 } from '@ionic/react';
+import * as Y from 'yjs';
 import jsQR from 'jsqr';
 import { IdentityStore, kyberFingerprintB64url } from '../crypto/identity';
 import { useSync } from '../sync/SyncProvider';
@@ -22,10 +23,14 @@ type Ui = {
 };
 
 const HostPairingScreen: React.FC = () => {
-    const { pairWithSecret } = useSync();
-
+    const { pairWithSecret, ymap } = useSync(); // <-- minimal: pull ymap for heartbeat
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
     const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+
+    // minimal: keep a reference to the opened stream so we can stop it after decode
+    const streamRef = React.useRef<MediaStream | null>(null);
+    // minimal: avoid repeated onDecoded when camera keeps feeding frames
+    const acceptedRef = React.useRef(false);
 
     const [ui, setUi] = React.useState<Ui>({
         phase: 'init',
@@ -35,6 +40,28 @@ const HostPairingScreen: React.FC = () => {
         video: '-',
         formats: '(checking…)',
     });
+
+    // ---- new: observe heartbeat map; declare success only when >=2 fresh heartbeats ----
+    React.useEffect(() => {
+        if (!ymap) return;
+
+        const isFresh = (ts: any) => typeof ts === 'number' && Date.now() - ts < 10_000;
+
+        const checkPeers = () => {
+            let fresh = 0;
+            (ymap as Y.Map<any>).forEach((v, k) => {
+                if (typeof k === 'string' && k.startsWith('hb:') && isFresh(v)) fresh++;
+            });
+            if (fresh >= 2) {
+                setUi(s => ({ ...s, phase: 'done', note: 'Paired. You can go back.' }));
+            }
+        };
+
+        (ymap as Y.Map<any>).observe(checkPeers);
+        const t = setInterval(checkPeers, 2000);
+        checkPeers();
+        return () => { try { (ymap as Y.Map<any>).unobserve(checkPeers); } catch { } clearInterval(t); };
+    }, [ymap]);
 
     React.useEffect(() => {
         let stream: MediaStream | null = null;
@@ -62,6 +89,7 @@ const HostPairingScreen: React.FC = () => {
                     video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
                     audio: false
                 });
+                streamRef.current = stream; // <-- minimal: keep it for stopping later
 
                 if (!videoRef.current) return;
                 videoRef.current.srcObject = stream;
@@ -90,7 +118,7 @@ const HostPairingScreen: React.FC = () => {
 
                     try {
                         // 1) Fast path: BarcodeDetector on video element
-                        if (detector) {
+                        if (detector && !acceptedRef.current) {
                             const hits = await detector.detect(v);
                             if (hits && hits.length > 0) {
                                 setUi(s => ({ ...s, engine: 'BarcodeDetector(video)', phase: 'decoding', note: 'QR detected (video)…' }));
@@ -111,7 +139,7 @@ const HostPairingScreen: React.FC = () => {
                         if (canvas.height !== ch) canvas.height = ch;
                         ctx.drawImage(v, 0, 0, cw, ch);
 
-                        if (detector && 'createImageBitmap' in window) {
+                        if (detector && 'createImageBitmap' in window && !acceptedRef.current) {
                             try {
                                 const bmp = await createImageBitmap(canvas);
                                 const hits2 = await detector.detect(bmp);
@@ -127,16 +155,18 @@ const HostPairingScreen: React.FC = () => {
                         }
 
                         // 3) Pure JS fallback: jsQR
-                        try {
-                            const img = ctx.getImageData(0, 0, cw, ch);
-                            const code = jsQR(img.data, cw, ch, { inversionAttempts: 'attemptBoth' });
-                            if (code?.data) {
-                                setUi(s => ({ ...s, engine: 'jsQR', phase: 'decoding', note: 'QR detected (jsQR)…' }));
-                                await onDecoded(code.data);
-                                return;
+                        if (!acceptedRef.current) {
+                            try {
+                                const img = ctx.getImageData(0, 0, cw, ch);
+                                const code = jsQR(img.data, cw, ch, { inversionAttempts: 'attemptBoth' });
+                                if (code?.data) {
+                                    setUi(s => ({ ...s, engine: 'jsQR', phase: 'decoding', note: 'QR detected (jsQR)…' }));
+                                    await onDecoded(code.data);
+                                    return;
+                                }
+                            } catch (e: any) {
+                                setUi(s => ({ ...s, lastErr: `jsQR err: ${e?.message ?? e}` }));
                             }
-                        } catch (e: any) {
-                            setUi(s => ({ ...s, lastErr: `jsQR err: ${e?.message ?? e}` }));
                         }
                     } catch (e: any) {
                         setUi(s => ({ ...s, lastErr: `loop err: ${e?.message ?? e}` }));
@@ -155,11 +185,16 @@ const HostPairingScreen: React.FC = () => {
             cancelled = true;
             if (tickTimer) clearTimeout(tickTimer);
             try { stream?.getTracks().forEach(t => t.stop()); } catch { }
+            try { streamRef.current?.getTracks().forEach(t => t.stop()); } catch { }
             if (videoRef.current) try { (videoRef.current.srcObject as any) = null; } catch { }
         };
     }, []); // eslint-disable-line
 
     async function onDecoded(decodedText: string) {
+        // minimal: prevent re-entry
+        if (acceptedRef.current) return;
+        acceptedRef.current = true;
+
         try {
             const req = JSON.parse(decodedText) as {
                 v: number; pairingSecret: string; kemPk: string; kemPkFp: string;
@@ -178,11 +213,18 @@ const HostPairingScreen: React.FC = () => {
             localStorage.setItem(SECRET_KEY, req.pairingSecret);
             sessionStorage.setItem('wl/bootstrap-sender', '1');
 
+            // start sync; SyncProvider will bring up the heartbeat
+            setUi(s => ({ ...s, note: 'Code accepted. Waiting for the other device…' }));
             await pairWithSecret(req.pairingSecret);
 
-            setUi(s => ({ ...s, phase: 'done', note: 'Paired. You can go back.' }));
+            // minimal: stop camera once we have a valid code
+            try { streamRef.current?.getTracks().forEach(t => t.stop()); } catch { }
+            try { if (videoRef.current) (videoRef.current.srcObject as any) = null; } catch { }
+
+            // do NOT set phase 'done' yet; the heartbeat watcher above will do it
         } catch (e: any) {
             setUi(s => ({ ...s, phase: 'error', note: e?.message ?? String(e) }));
+            acceptedRef.current = false; // allow retry if something failed
         }
     }
 
