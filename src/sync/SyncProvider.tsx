@@ -70,7 +70,7 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
 
         // who sends bootstrap? (scanner does)
         const isBootstrapSender = sessionStorage.getItem('wl/bootstrap-sender') === '1';
-        if (isBootstrapSender) sessionStorage.removeItem('wl/bootstrap-sender');
+        //if (isBootstrapSender) sessionStorage.removeItem('wl/bootstrap-sender'); testing move
 
         // peer identity (may be missing on responder side)
         const idStore = new IdentityStore();
@@ -90,15 +90,18 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
 
         // Start encrypted bridge
         const enc = new EncryptedYTransport(
-            svc.provider as any,
+            svc.provider,
             svc.doc,
             provider,
             myKemSkB64,
-            theirKemPkB64,
+            theirKemPkB64 ?? '',
             km,
             secretB64,
             isBootstrapSender,
-            undefined
+            () => {
+                // once bootstrap completes, clear the marker
+                sessionStorage.removeItem('wl/bootstrap-sender');
+            }
         );
         enc.start();
 

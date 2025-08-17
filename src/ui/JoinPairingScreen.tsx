@@ -11,6 +11,7 @@ import QRCode from 'qrcode';
 import { KeyManager } from '../crypto/KeyManager';
 import { kyberFingerprintB64url } from '../crypto/identity';
 import { generatePairingSecret } from '../sync/SyncProvider';
+import { useSync } from '../sync/SyncProvider';
 
 const SECRET_KEY = 'wellium/pairing-secret';
 
@@ -56,6 +57,7 @@ const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
         };
     }, []);
 
+    const { status, pairWithSecret } = useSync();
     // (re)draw QR whenever `side` changes
     useEffect(() => {
         if (!side) return;
@@ -69,6 +71,7 @@ const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
             if (!secret) {
                 secret = generatePairingSecret();
                 localStorage.setItem(SECRET_KEY, secret);
+                pairWithSecret(secret)
             }
 
             const payload = JSON.stringify({ v: 1, pairingSecret: secret, kemPk, kemPkFp });
@@ -88,7 +91,13 @@ const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
 
             setQrUrl(url);
         })();
-    }, [side]);
+
+        if (status === 'connected') {
+            navigate('/home', { replace: true });
+        }
+
+    }, [side, pairWithSecret, status, navigate]);
+
 
     const goToDashboard = () => {
         localStorage.setItem('wl/onboarding-ok', '1'); // so Guard won’t loop back here
