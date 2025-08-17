@@ -75,8 +75,15 @@ const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
             const dpr = window.devicePixelRatio || 1;
 
             const url = await QRCode.toDataURL(payload, {
-                margin: 0,
-                width: Math.round(side * dpr), // crisp on high-DPI
+                // A proper quiet zone (4 modules is the QR spec recommendation)
+                margin: 4,
+                // Stronger error correction helps on glare / moiré screens
+                errorCorrectionLevel: 'Q', // or 'H'
+                width: Math.round(side * dpr),
+                color: {
+                    dark: '#000000',   // modules
+                    light: '#FFFFFF'   // ensure an actual white border (not transparent)
+                }
             });
 
             setQrUrl(url);
@@ -124,6 +131,7 @@ const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
                             height: side,
                             maxWidth: '92vw',
                             maxHeight: '92vw',
+                            imageRendering: 'pixelated'
                         }}
                     />
                 )}
