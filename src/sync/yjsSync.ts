@@ -54,7 +54,7 @@ export async function startYSync(opts: {
     realDoc.on('update', (u) => Y.applyUpdate(dummyDoc, u));
 
     const DEFAULT_SIGNALING = [
-        'wss://y-webrtc-signaling.fly.dev',
+        'wss://signaling.yjs.dev'
     ];
 
     const provider = new WebrtcProvider(room, dummyDoc, {
@@ -67,11 +67,52 @@ export async function startYSync(opts: {
         },
     });
 
-    try { provider.awareness.setLocalStateField('w', { id: realDoc.clientID, at: Date.now() }); } catch { }
+    try {
+        // Minimal awareness breadcrumb
+        provider.awareness.setLocalStateField('w', { id: realDoc.clientID, at: Date.now() });
+    } catch { }
+
+
+    let __wlSampler__: any = undefined;
+    try {
+        if (localStorage.getItem('wl/debug') === '1') {
+            __wlSampler__ = setInterval(() => {
+                const conns: Map<string, any> =
+                    (provider as any).webrtcConns ||
+                    (provider as any).conns ||
+                    (provider as any).room?.webrtcConns ||
+                    new Map();
+                const aware = provider.awareness?.getStates?.().size ?? 0;
+                // Keep this log concise; you can grep it in the field.
+                console.info('[wl.sample]', { aware, conns: Array.from(conns.keys()) });
+            }, 1500);
+        }
+    } catch { /* ignore */ }
+
+    try {
+        // Diagnostics
+        const { dlog } = await import('../dev/diag'); // path: src/dev/diag.ts
+        provider.on('status', (e: any) => dlog('provider.status', { status: e.status }));
+        provider.on('synced', (s: any) => dlog('provider.synced', { synced: !!s }));
+        // y-webrtc emits a 'peers' event in recent versions
+        (provider as any).on?.('peers', (e: any) => dlog('provider.peers', { added: e.added, removed: e.removed }));
+        // Awareness changes; count peers
+        provider.awareness.on('change', () => {
+            const n = provider.awareness.getStates().size;
+            dlog('awareness.change', { size: n });
+        });
+    } catch { }
+
+    // Write a room-proof key into the doc so both sides can confirm the same tag.
+    try {
+        const sys = realDoc.getMap('sys');
+        sys.set(`rt:${room}:${realDoc.clientID}`, { id: realDoc.clientID, at: Date.now() });
+    } catch { }
 
     if (!autoConnect) provider.disconnect();
 
     const stop = () => {
+        try { if (__wlSampler__) clearInterval(__wlSampler__); } catch { }
         try { provider.disconnect(); provider.destroy(); } catch { }
         try { realDoc.destroy(); dummyDoc.destroy(); } catch { }
     };

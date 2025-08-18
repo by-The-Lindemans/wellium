@@ -130,7 +130,26 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
 
         setStatus('connecting');
         svc.provider.connect();
-        setTimeout(() => setStatus('connected'), 300);
+        try {
+            const provider = svc.provider as any;
+            const sys = svc.doc.getMap('sys');
+            const myHbKey = localStorage.getItem('wl/hb-key') || `hb:${svc.doc.clientID}`;
+
+            const ok = () => {
+                const aware = provider.awareness?.getStates?.().size || 0;
+                let hbPeers = 0;
+                (sys as any).forEach?.((v: any, k: string) => { if (k.startsWith('hb:') && k !== myHbKey && typeof v === 'number' && Date.now() - v < 10000) hbPeers++; });
+                return aware > 1 || hbPeers > 0;
+            };
+
+            const start = Date.now();
+            const poll = () => {
+                if (ok()) { setStatus('connected'); return; }
+                if (Date.now() - start > 20000) { setStatus('error'); setError('no peer detected'); return; }
+                setTimeout(poll, 250);
+            };
+            poll();
+        } catch { setTimeout(() => setStatus('connected'), 300); }
     }
 
     async function pairWithSecret(secretB64: string) {
