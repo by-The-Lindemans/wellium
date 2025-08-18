@@ -67,6 +67,8 @@ export async function startYSync(opts: {
         },
     });
 
+    try { provider.awareness.setLocalStateField('w', { id: realDoc.clientID, at: Date.now() }); } catch { }
+
     if (!autoConnect) provider.disconnect();
 
     const stop = () => {

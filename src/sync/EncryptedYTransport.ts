@@ -139,37 +139,79 @@ export class EncryptedYTransport {
 
     /* ---------------- peer discovery ---------------- */
     private observePeerChanges() {
-        // y-webrtc doesn’t expose a stable event across versions; polling is OK.
-        this.peerScanTimer = setInterval(() => this.hookExistingPeers(), 1000);
+        // y-webrtc internals vary a bit; polling remains the most stable approach.
+        this.peerScanTimer = setInterval(() => this.hookExistingPeers(), 750);
     }
 
     private hookExistingPeers() {
+        // Support both shapes seen across y-webrtc versions.
         const conns: Map<string, any> =
             (this.provider as any).webrtcConns ||
             (this.provider as any).conns ||
+            (this.provider as any).room?.webrtcConns ||
             new Map();
 
         for (const [peerId, conn] of conns) {
             const peer = conn.peer || conn;
-            if (this.peers.has(peerId)) continue;
+            if (!peer || this.peers.has(peerId)) continue;
 
             const session = new PeerSession(this.kem, this.myKemSkB64, this.theirKemPkB64 as any);
             const entry = { peer, session, established: false, sealedCount: 0, rotateTimer: undefined as any };
             this.peers.set(peerId, entry);
+
+            // Data messages (bootstrap, hs2, updates)
             peer.on('data', this.onData);
 
-            // Only initiate if we actually know their static PK; otherwise be responder.
-            if (this.theirKemPkB64) {
+            // Clean up on close (prevents ghost peers that never establish)
+            const onClose = () => {
+                try { peer.off?.('data', this.onData); } catch { }
+                if (entry.rotateTimer) clearTimeout(entry.rotateTimer);
+                this.peers.delete(peerId);
+                // allow a later reconnect to re-run handshake
+            };
+            peer.once?.('close', onClose);
+            peer.once?.('error', onClose);
+
+            // Only initiate if we know their static KEM public key; otherwise stay responder.
+            if (!this.theirKemPkB64) continue;
+
+            // Handshake only after the data channel is really open.
+            const tryInitiate = async () => {
+                if (entry.established) return;
                 try {
                     const hs1 = session.makeHs1('me', peerId);
                     peer.send(JSON.stringify(hs1));
-                    session.initiatorEncap().then(hs2 => {
-                        peer.send(JSON.stringify({ ...hs2, from: 'me', to: peerId }));
-                        entry.established = true;
-                        this.scheduleRotate(peerId);
-                        void this.maybeSendBootstrap(entry);
-                    }).catch(() => { });
-                } catch { /* ignore */ }
+                    const hs2 = await session.initiatorEncap();
+                    peer.send(JSON.stringify({ ...hs2, from: 'me', to: peerId }));
+                    entry.established = true;
+                    this.scheduleRotate(peerId);
+                    void this.maybeSendBootstrap(entry);
+                    // success; no retry needed
+                } catch {
+                    // Retry once shortly after connect in case simple-peer buffered poorly
+                    setTimeout(() => {
+                        if (!entry.established) {
+                            try {
+                                const hs1b = session.makeHs1('me', peerId);
+                                peer.send(JSON.stringify(hs1b));
+                                session.initiatorEncap().then(hs2b => {
+                                    peer.send(JSON.stringify({ ...hs2b, from: 'me', to: peerId }));
+                                    entry.established = true;
+                                    this.scheduleRotate(peerId);
+                                    void this.maybeSendBootstrap(entry);
+                                }).catch(() => { });
+                            } catch { }
+                        }
+                    }, 300);
+                }
+            };
+
+            if (peer.connected === true) {
+                // Already open; initiate immediately.
+                void tryInitiate();
+            } else {
+                // Wait for the data channel to open; then initiate.
+                peer.once?.('connect', () => void tryInitiate());
             }
         }
     }
