@@ -31,7 +31,7 @@ const ICE_SERVERS: RTCIceServer[] = [
     // STUN (no media relay): Mozilla + Cloudflare
     { urls: ['stun:stun.services.mozilla.com:3478', 'stun:stun.cloudflare.com:3478'] },
 
-    // TURN (media relay) – Open Relay Project (public; rate-limited, no SLA)
+    // TURN (media relay) (public, rate-limited)
     { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
     { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
     { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
@@ -40,6 +40,44 @@ const ICE_SERVERS: RTCIceServer[] = [
 
 // Set to true temporarily to verify TURN works (forces relay-only).
 const DEBUG_FORCE_TURN_ONLY = false;
+
+/* ---------- MINIMAL FIX: correct signaling list + preflight ---------- */
+/** Official y-webrtc defaults (signaling WebSockets; not STUN/TURN). */
+const DEFAULT_SIGNALING: string[] = [
+    'wss://signaling.yjs.dev',
+    'wss://y-webrtc-signaling-eu.herokuapp.com',
+    'wss://y-webrtc-signaling-us.herokuapp.com',
+];
+
+/** Optional per-device override; set via DevTools: localStorage.setItem('wl/signal', 'wss://a,wss://b') */
+function signalingOverrideFromLocalStorage(): string[] {
+    try {
+        const s = typeof localStorage !== 'undefined' ? localStorage.getItem('wl/signal') : '';
+        if (!s) return [];
+        return s.split(',').map((u) => u.trim()).filter(Boolean);
+    } catch { return []; }
+}
+
+/** Try to open+close a WS for each URL; return the subset that resolves & opens. */
+async function preflightSignaling(urls: string[], timeoutMs = 5000): Promise<string[]> {
+    const tests = urls.map((url) => new Promise<string | null>((resolve) => {
+        let done = false;
+        try {
+            const ws = new WebSocket(url);
+            const to = setTimeout(() => {
+                if (!done) { done = true; try { ws.close(); } catch { /* ignore */ }; resolve(null); }
+            }, timeoutMs);
+            ws.onopen = () => { if (!done) { done = true; clearTimeout(to); try { ws.close(); } catch { }; resolve(url); } };
+            ws.onerror = () => { if (!done) { done = true; clearTimeout(to); resolve(null); } };
+        } catch { resolve(null); }
+    }));
+    const results = await Promise.all(tests);
+    const ok = results.filter((u): u is string => !!u);
+
+    // preserve original order
+    return urls.filter((u) => ok.includes(u));
+}
+/* -------------------------------------------------------------------- */
 
 export async function startYSync(opts: {
     room: string;
@@ -53,12 +91,20 @@ export async function startYSync(opts: {
     dummyDoc.on('update', (u) => Y.applyUpdate(realDoc, u));
     realDoc.on('update', (u) => Y.applyUpdate(dummyDoc, u));
 
-    const DEFAULT_SIGNALING = [
-        'wss://signaling.yjs.dev'
-    ];
+    // --- MINIMAL FIX APPLIED HERE ---
+    // Build candidate signaling list: override > explicit > defaults
+    const override = signalingOverrideFromLocalStorage();
+    const candidates = (override.length ? override : (signalingUrls?.length ? signalingUrls : DEFAULT_SIGNALING));
+
+    // Probe which ones actually resolve/open on this device; if none, fall back to full list (preserves prior behavior)
+    let resolvedSignaling = candidates;
+    try {
+        const ok = await preflightSignaling(candidates, 5000);
+        if (ok.length > 0) resolvedSignaling = ok;
+    } catch { /* keep candidates */ }
 
     const provider = new WebrtcProvider(room, dummyDoc, {
-        signaling: (signalingUrls?.length ? signalingUrls : DEFAULT_SIGNALING),
+        signaling: resolvedSignaling, // <— only real WS signaling URLs; no STUN here
         peerOpts: {
             config: {
                 iceServers: ICE_SERVERS,
@@ -72,31 +118,13 @@ export async function startYSync(opts: {
         provider.awareness.setLocalStateField('w', { id: realDoc.clientID, at: Date.now() });
     } catch { }
 
-
-    let __wlSampler__: any = undefined;
-    try {
-        if (localStorage.getItem('wl/debug') === '1') {
-            __wlSampler__ = setInterval(() => {
-                const conns: Map<string, any> =
-                    (provider as any).webrtcConns ||
-                    (provider as any).conns ||
-                    (provider as any).room?.webrtcConns ||
-                    new Map();
-                const aware = provider.awareness?.getStates?.().size ?? 0;
-                // Keep this log concise; you can grep it in the field.
-                console.info('[wl.sample]', { aware, conns: Array.from(conns.keys()) });
-            }, 1500);
-        }
-    } catch { /* ignore */ }
-
     try {
         // Diagnostics
         const { dlog } = await import('../dev/diag'); // path: src/dev/diag.ts
+        dlog('signaling.preflight', { candidates, resolved: resolvedSignaling });
         provider.on('status', (e: any) => dlog('provider.status', { status: e.status }));
         provider.on('synced', (s: any) => dlog('provider.synced', { synced: !!s }));
-        // y-webrtc emits a 'peers' event in recent versions
         (provider as any).on?.('peers', (e: any) => dlog('provider.peers', { added: e.added, removed: e.removed }));
-        // Awareness changes; count peers
         provider.awareness.on('change', () => {
             const n = provider.awareness.getStates().size;
             dlog('awareness.change', { size: n });
@@ -112,7 +140,6 @@ export async function startYSync(opts: {
     if (!autoConnect) provider.disconnect();
 
     const stop = () => {
-        try { if (__wlSampler__) clearInterval(__wlSampler__); } catch { }
         try { provider.disconnect(); provider.destroy(); } catch { }
         try { realDoc.destroy(); dummyDoc.destroy(); } catch { }
     };
