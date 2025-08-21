@@ -44,6 +44,7 @@ const DEBUG_FORCE_TURN_ONLY = false;
 /* ---------- MINIMAL FIX: correct signaling list + preflight ---------- */
 /** Official y-webrtc defaults (signaling WebSockets; not STUN/TURN). */
 const DEFAULT_SIGNALING: string[] = [
+    'wss://y-webrtc-eu.fly.dev',
     'wss://signaling.yjs.dev',
     'wss://y-webrtc-signaling-eu.herokuapp.com',
     'wss://y-webrtc-signaling-us.herokuapp.com',
