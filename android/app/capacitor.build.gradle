@@ -17,7 +17,7 @@ dependencies {
     implementation project(':capacitor-keyboard')
     implementation project(':capacitor-status-bar')
     implementation project(':capacitor-secure-storage-plugin')
-
+    implementation "org.jmdns:jmdns:3.5.5"
 }
 
 
