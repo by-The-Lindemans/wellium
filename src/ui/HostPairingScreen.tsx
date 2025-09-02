@@ -211,6 +211,7 @@ const HostPairingScreen: React.FC = () => {
             await ids.savePeer(roomTag, { kemPkB64: req.kemPk, fingerprintB64: req.kemPkFp });
 
             localStorage.setItem(SECRET_KEY, req.pairingSecret);
+            console.log('[pair] scan OK; setting host role and starting staging room');
             sessionStorage.setItem('wl/bootstrap-sender', '1');
             sessionStorage.setItem('wl/force-role', 'host');
 

@@ -2,9 +2,9 @@ import * as Y from 'yjs';
 import { PeerSession, type WireMsg } from '@crypto/session';
 import { b64urlToBytes, bytesToB64url, KeyManager } from '@crypto/KeyManager';
 import type { KemProvider } from '@crypto/KeyManager';
-import { dlog } from '../dev/diag';
 
-const log = (...a: any[]) => dlog('lan', ...a);
+import { dlog } from '../util/debug';
+
 const slog = (...a: any[]) => dlog('sync', ...a);
 
 /** One-shot bootstrap message that carries the wrapped invitation. */

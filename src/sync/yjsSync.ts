@@ -2,10 +2,9 @@
 import * as Y from 'yjs';
 import SimplePeer from 'simple-peer';
 import { buf } from '@crypto/bytes';
-import { dlog } from '../dev/diag';
+import { dlog } from '../util/debug';
 
 const log = (...a: any[]) => dlog('lan', ...a);
-const slog = (...a: any[]) => dlog('sync', ...a);
 
 export const ROOM_TAG_LEN = 32;
 
@@ -102,6 +101,7 @@ export class LanProvider {
 
     /** Entry point used by startYSync */
     async connect() {
+        console.log('[lan] connect() begin');
         if (!ZC()) throw new Error('cordova-plugin-zeroconf not available');
         if (!UDP()) throw new Error('chrome.sockets.udp not available');
         this.statusCb?.({ status: 'connecting' });
