@@ -68,7 +68,6 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
 
         await loadAllUpdatesEncrypted(svc.doc, storage, feedKey, keys.aes);
 
-        // ---- minimal add: expose sys map + start heartbeat (and store hb key) ----
         // Stop any previous heartbeat if we’re reconnecting.
         try { hbCleanupRef.current?.(); } catch { }
 
@@ -90,7 +89,6 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
             try { sys.delete(hbKey); } catch { }
             try { localStorage.removeItem('wl/hb-key'); } catch { }
         };
-        // ---- end minimal add ----
 
         // who sends bootstrap? (scanner does)
         const isBootstrapSender = sessionStorage.getItem('wl/bootstrap-sender') === '1';

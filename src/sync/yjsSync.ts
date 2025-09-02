@@ -77,6 +77,7 @@ export class LanProvider {
     private statusCb?: (e: { status: 'connecting' | 'connected' | 'disconnected' }) => void;
     private svcName = '';
     private destroyed = false;
+    private forcedRole: 'host' | 'client' | null = null;
 
     /** peers we are currently handshaking with to avoid duplicate dials */
     private connecting = new Set<string>();
@@ -105,7 +106,13 @@ export class LanProvider {
         this.udp = new UdpSock(53530);
         await this.udp.bind();
         this.udp.onMessage(m => { void this.onUdp(m); });
-        
+
+        const hint = sessionStorage.getItem('wl/force-role');
+        if (hint === 'host' || hint === 'client') {
+            this.forcedRole = hint;
+            try { sessionStorage.removeItem('wl/force-role'); } catch { }
+        }
+
         // Always advertise; always watch
         await this.advertise(53530);
         this.watchForever();
@@ -161,8 +168,11 @@ export class LanProvider {
             this.services.set(remoteId, { address, port });
 
             // Only one side should initiate; tie-break on lexicographic id
-            const iShouldInitiate = this.myId.localeCompare(remoteId) < 0;
-            if (!iShouldInitiate) return;                                 // wait to answer their offer
+            const iShouldInitiate =
+                this.forcedRole === 'client' ? true :
+                    this.forcedRole === 'host' ? false :
+                        this.myId.localeCompare(remoteId) < 0; // legacy tie-break
+            if (!iShouldInitiate) return;                              // wait to answer their offer
 
             // Avoid parallel dials and reconnect flapping
             if (this.webrtcConns.has(remoteId) || this.connecting.has(remoteId)) return;
@@ -250,8 +260,11 @@ export class LanProvider {
         // publish immediately so EncryptedYTransport can hook before connect
         this.webrtcConns.set(peerId, { peer: p });
 
-        const onConnect = () => { this.connecting.delete(peerId); this.updateStatus(); };
-        const onCloseLike = () => {
+        const onConnect = () => {
+            this.connecting.delete(peerId);
+            this.forcedRole = null; // staging is done; revert to normal mesh behavior
+            this.updateStatus();
+        }; const onCloseLike = () => {
             try { p.removeAllListeners?.(); } catch { }
             this.webrtcConns.delete(peerId);
             this.connecting.delete(peerId);
