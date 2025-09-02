@@ -1,6 +1,18 @@
 // src/dev/diag.ts
 type Entry = { t: number; ev: string; kv?: Record<string, any> };
 
+export const IS_DEV = Boolean((import.meta as any)?.env?.DEV);
+export const DEBUG = {
+    lan: IS_DEV || localStorage.getItem('DEBUG_LAN') === '1',
+    sync: IS_DEV || localStorage.getItem('DEBUG_SYNC') === '1',
+    store: IS_DEV || localStorage.getItem('DEBUG_STORE') === '1',
+    crypto: IS_DEV || localStorage.getItem('DEBUG_CRYPTO') === '1',
+};
+
+export function dlog<K extends keyof typeof DEBUG>(k: K, ...args: any[]) {
+    if (DEBUG[k]) console.log(`[${k}]`, ...args);
+}
+
 class Diag {
     private buf: Entry[] = [];
     private max = 500;
@@ -63,12 +75,6 @@ class Diag {
 }
 
 export const diag = new Diag().enableFromStorage();
-
-// Convenience helpers for conditional logging without imports
-export function dlog(ev: string, kv?: Record<string, any>) {
-    const d: any = (window as any).WL_DIAG;
-    if (d?.log) d.log(ev, kv);
-}
 
 export function attachPeerIfDiag(peerId: string, peer: any) {
     const d: any = (window as any).WL_DIAG;

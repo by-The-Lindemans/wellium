@@ -2,11 +2,12 @@
 import * as Y from 'yjs';
 import SimplePeer from 'simple-peer';
 import { buf } from '@crypto/bytes';
+import { dlog } from '../dev/diag';
+
+const log = (...a: any[]) => dlog('lan', ...a);
+const slog = (...a: any[]) => dlog('sync', ...a);
 
 export const ROOM_TAG_LEN = 32;
-
-const DBG = () => localStorage.getItem('DEBUG_LAN') === '1';
-const log = (...a: any[]) => { if (DBG()) console.log('[lan]', ...a); };
 
 export async function sha256Base64Url(bytes: Uint8Array): Promise<string> {
     const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buf(bytes)));
