@@ -5,6 +5,9 @@ import { buf } from '@crypto/bytes';
 
 export const ROOM_TAG_LEN = 32;
 
+const DBG = () => localStorage.getItem('DEBUG_LAN') === '1';
+const log = (...a: any[]) => { if (DBG()) console.log('[lan]', ...a); };
+
 export async function sha256Base64Url(bytes: Uint8Array): Promise<string> {
     const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buf(bytes)));
     return btoa(String.fromCharCode(...digest)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -111,6 +114,7 @@ export class LanProvider {
         if (hint === 'host' || hint === 'client') {
             this.forcedRole = hint;
             try { sessionStorage.removeItem('wl/force-role'); } catch { }
+            log('forced role:', this.forcedRole);
         }
 
         // Always advertise; always watch
@@ -151,45 +155,61 @@ export class LanProvider {
     /** Keep a single long-lived watch; connect to new services deterministically */
     private watchForever() {
         const zc = ZC();
-        const onEvent = (event: any) => {
+        const type = '_wellium._tcp.';
+        const domain = 'local.';
+
+        const handleResolved = (svc: any) => {
             if (this.destroyed) return;
-            if (event?.action !== 'added') return;
-            const svc = event.service || {};
             const txt = svc.txtRecord || {};
-            if (txt.room !== this.roomTag) return;                        // wrong mesh
+            if (txt.room !== this.roomTag) return;
+
             const remoteId = String(txt.id || '');
-            if (!remoteId || remoteId === this.myId) return;              // ignore self or malformed
+            if (!remoteId || remoteId === this.myId) return;
 
             const address = (svc.ipv4Addresses && svc.ipv4Addresses[0]) || (svc.addresses && svc.addresses[0]);
             const port = svc.port;
             if (!address || !port) return;
 
-            // Save latest coordinates for this peer id
             this.services.set(remoteId, { address, port });
-
-            // Only one side should initiate; tie-break on lexicographic id
             const iShouldInitiate =
                 this.forcedRole === 'client' ? true :
                     this.forcedRole === 'host' ? false :
-                        this.myId.localeCompare(remoteId) < 0; // legacy tie-break
-            if (!iShouldInitiate) return;                              // wait to answer their offer
+                        this.myId.localeCompare(remoteId) < 0;
 
-            // Avoid parallel dials and reconnect flapping
+            log('svc resolved', { name: svc.name, address, port, remoteId, iShouldInitiate, forced: this.forcedRole });
+
+            if (!iShouldInitiate) return;
             if (this.webrtcConns.has(remoteId) || this.connecting.has(remoteId)) return;
 
-            // Small jitter to reduce simultaneous offers right after service appearance
-            const jitter = 200 + Math.floor(Math.random() * 400);
+            this.connecting.add(remoteId);
+            const jitter = 150 + Math.floor(Math.random() * 300);
             setTimeout(() => {
-                if (this.webrtcConns.has(remoteId) || this.connecting.has(remoteId) || this.destroyed) return;
+                if (this.destroyed) return;
                 const coords = this.services.get(remoteId);
                 if (!coords) return;
+                log('dialing', remoteId, coords);
                 void this.connectAsClient(remoteId, coords.address, coords.port);
             }, jitter);
         };
 
-        // watch(type, domain, callback)
-        zc.watch('_wellium._tcp.', 'local.', onEvent);
+        const onAdded = (event: any) => {
+            if (this.destroyed) return;
+            const svc = event?.service;
+            if (!svc) return;
+            // Always resolve to get IPs on iOS and some Android stacks
+            try {
+                zc.resolve(type, domain, svc.name, (resolved: any) => handleResolved(resolved?.service || svc));
+            } catch {
+                handleResolved(svc);
+            }
+        };
+
+        // Begin watching
+        zc.watch(type, domain, (evt: any) => {
+            if (evt?.action === 'added') onAdded(evt);
+        });
     }
+
 
     /* ---- UDP offer-answer protocol ---- */
 
@@ -197,15 +217,15 @@ export class LanProvider {
         this.connecting.add(remoteId);
         const p = new SimplePeer({ initiator: true, trickle: false });
         this.wire(remoteId, p);
-        // create offer then send by UDP
         try {
             const offer = await new Promise<any>((resolve, reject) => {
                 p.once('signal', resolve);
                 p.once('error', reject);
             });
+            log('send offer', { to: remoteId, hostIp, hostPort });
             await this.udp!.send(hostIp, hostPort, { v: 1, t: 'offer', room: this.roomTag, id: this.myId, to: remoteId, offer });
-        } catch {
-            // destroy peer on failure; allow retry later
+        } catch (e) {
+            log('offer failed', e);
             try { p.destroy(); } catch { }
             this.webrtcConns.delete(remoteId);
             this.connecting.delete(remoteId);
@@ -217,13 +237,12 @@ export class LanProvider {
         try { msg = JSON.parse(new TextDecoder().decode(m.data)); } catch { return; }
         if (!msg || msg.v !== 1 || msg.room !== this.roomTag) return;
 
-        // Offer received: become answerer for that remote
         if (msg.t === 'offer') {
             const remoteId = String(msg.id || '');
             if (!remoteId || remoteId === this.myId) return;
-
-            // If we already have or are building a connection, ignore duplicate offers
             if (this.webrtcConns.has(remoteId)) return;
+
+            log('recv offer', { from: remoteId, addr: m.address, port: m.port });
 
             const p = new SimplePeer({ initiator: false, trickle: false });
             this.wire(remoteId, p);
@@ -233,8 +252,10 @@ export class LanProvider {
                     p.once('signal', resolve);
                     p.once('error', reject);
                 });
+                log('send answer', { to: remoteId, addr: m.address, port: m.port });
                 await this.udp!.send(m.address, m.port, { v: 1, t: 'answer', room: this.roomTag, id: this.myId, to: remoteId, answer });
-            } catch {
+            } catch (e) {
+                log('answer failed', e);
                 try { p.destroy(); } catch { }
                 this.webrtcConns.delete(remoteId);
                 this.connecting.delete(remoteId);
@@ -242,14 +263,14 @@ export class LanProvider {
             return;
         }
 
-        // Answer received for an offer we sent
         if (msg.t === 'answer') {
             const remoteId = String(msg.id || msg.from || '');
             if (!remoteId) return;
             const entry = this.webrtcConns.get(remoteId);
             const p = entry?.peer;
             if (!p) return;
-            try { p.signal(msg.answer); } catch { /* ignore bad answer */ }
+            log('recv answer', { from: remoteId });
+            try { p.signal(msg.answer); } catch (e) { log('answer signal err', e); }
             return;
         }
     }
@@ -260,20 +281,14 @@ export class LanProvider {
         // publish immediately so EncryptedYTransport can hook before connect
         this.webrtcConns.set(peerId, { peer: p });
 
-        const onConnect = () => {
+        p.on('connect', () => {
+            log('rtc connect', peerId);
             this.connecting.delete(peerId);
-            this.forcedRole = null; // staging is done; revert to normal mesh behavior
+            this.forcedRole = null; // done with staging hint
             this.updateStatus();
-        }; const onCloseLike = () => {
-            try { p.removeAllListeners?.(); } catch { }
-            this.webrtcConns.delete(peerId);
-            this.connecting.delete(peerId);
-            this.updateStatus();
-        };
-
-        p.on('connect', onConnect);
-        p.once('close', onCloseLike);
-        p.once('error', onCloseLike);
+        });
+        p.once('close', () => { log('rtc close', peerId); this.webrtcConns.delete(peerId); this.connecting.delete(peerId); this.updateStatus(); });
+        p.once('error', (e) => { log('rtc error', peerId, e); this.webrtcConns.delete(peerId); this.connecting.delete(peerId); this.updateStatus(); });
     }
 
     private updateStatus() {

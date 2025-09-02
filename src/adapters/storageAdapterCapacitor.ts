@@ -14,8 +14,13 @@ function fromBase64(s: string): Uint8Array {
   return new Uint8Array([...raw].map(c => c.charCodeAt(0)));
 }
 
-async function ensureDir(path: string) {
-  await Filesystem.mkdir({ path, directory: Directory.Data, recursive: true }).catch(() => { /* ok */ });
+export async function ensureDir(path: string) {
+  try {
+    await Filesystem.mkdir({ path, directory: Directory.Data, recursive: true });
+  } catch (e: any) {
+    if (e?.code === 'OS-PLUG-FILE-0010') return; // directory already exists
+    throw e;
+  }
 }
 
 type Manifest = { v: 1; next: number };
