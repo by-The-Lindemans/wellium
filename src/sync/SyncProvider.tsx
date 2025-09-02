@@ -121,9 +121,14 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
             km,
             secretB64,
             isBootstrapSender,
-            () => {
-                // once bootstrap completes, clear the marker
+            (newSecretB64) => {
+                // We just got provisioned into the mesh; switch rooms.
                 sessionStorage.removeItem('wl/bootstrap-sender');
+                // Stop the staging connection and re-pair into the mesh room.
+                setTimeout(() => {
+                    disconnect();
+                    void pairWithSecret(newSecretB64);
+                }, 0);
             }
         );
         enc.start();

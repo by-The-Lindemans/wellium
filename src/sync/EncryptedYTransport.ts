@@ -42,7 +42,7 @@ export class EncryptedYTransport {
         /** if true, this side sends the one-shot bootstrap to import keys */
         private readonly isBootstrapSender: boolean,
         /** optional callback invoked after a successful import of the invitation */
-        private readonly onReady?: () => void,
+        private readonly onReady?: (newSecretB64: string) => void,
     ) { }
 
     start() {
@@ -99,8 +99,7 @@ export class EncryptedYTransport {
             if ((msg as BootstrapMsg).t === MSG_BOOTSTRAP && typeof (msg as BootstrapMsg).p === 'string') {
                 try {
                     const pairingSecret = await this.km.importInvitationFromPeer((msg as BootstrapMsg).p);
-                    // Optional assertion that the secret matches; we do not hard-fail here.
-                    if (pairingSecret && this.onReady) this.onReady();
+                    if (pairingSecret && this.onReady) this.onReady(pairingSecret);
                 } catch { /* ignore bad invitation */ }
                 return;
             }

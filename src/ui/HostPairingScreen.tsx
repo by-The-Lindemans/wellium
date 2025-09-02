@@ -212,10 +212,10 @@ const HostPairingScreen: React.FC = () => {
 
             localStorage.setItem(SECRET_KEY, req.pairingSecret);
             sessionStorage.setItem('wl/bootstrap-sender', '1');
+            sessionStorage.setItem('wl/force-role', 'host');
 
             // start sync; SyncProvider will bring up the heartbeat
             setUi(s => ({ ...s, note: 'Code accepted. Waiting for the other device…' }));
-            sessionStorage.setItem('wl/force-role', 'host');
             await pairWithSecret(req.pairingSecret);
 
             // minimal: stop camera once we have a valid code
