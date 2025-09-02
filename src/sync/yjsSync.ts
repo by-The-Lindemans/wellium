@@ -105,7 +105,7 @@ export class LanProvider {
         this.udp = new UdpSock(53530);
         await this.udp.bind();
         this.udp.onMessage(m => { void this.onUdp(m); });
-
+        
         // Always advertise; always watch
         await this.advertise(53530);
         this.watchForever();
@@ -280,7 +280,7 @@ export async function startYSync(opts: {
 }): Promise<YSync> {
     const realDoc = new Y.Doc();
     const provider = new LanProvider(realDoc, opts.room);
-    await provider.connect();
+    if (opts.autoConnect !== false) { await provider.connect(); }
     const stop = () => provider.destroy();
     return { doc: realDoc, provider, stop };
 }
