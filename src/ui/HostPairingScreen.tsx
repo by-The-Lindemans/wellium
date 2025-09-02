@@ -215,6 +215,7 @@ const HostPairingScreen: React.FC = () => {
 
             // start sync; SyncProvider will bring up the heartbeat
             setUi(s => ({ ...s, note: 'Code accepted. Waiting for the other device…' }));
+            sessionStorage.setItem('wl/force-role', 'client');
             await pairWithSecret(req.pairingSecret);
 
             // minimal: stop camera once we have a valid code

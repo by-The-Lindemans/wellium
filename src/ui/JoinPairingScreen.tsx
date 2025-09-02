@@ -69,6 +69,7 @@ const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
             if (!secret) {
                 secret = generatePairingSecret();
                 localStorage.setItem(SECRET_KEY, secret);
+                sessionStorage.setItem('wl/force-role', 'host');
                 pairWithSecret(secret);
             }
 
