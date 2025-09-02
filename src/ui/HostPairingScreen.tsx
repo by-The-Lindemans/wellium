@@ -23,7 +23,7 @@ type Ui = {
 };
 
 const HostPairingScreen: React.FC = () => {
-    const { pairWithSecret, ymap } = useSync(); // <-- minimal: pull ymap for heartbeat
+    const { pairWithSecret, ymap, disconnect } = useSync();
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
     const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
 
@@ -214,6 +214,24 @@ const HostPairingScreen: React.FC = () => {
             console.log('[pair] scan OK; setting host role and starting staging room');
             sessionStorage.setItem('wl/bootstrap-sender', '1');
             sessionStorage.setItem('wl/force-role', 'host');
+
+            // ensure any previous provider is down before switching rooms
+            try { await disconnect(); } catch { }
+
+            // log the exact roomTag we are joining for staging
+            try {
+                const rt = (await roomTagFromSecretB64(req.pairingSecret)).slice(0, ROOM_TAG_LEN);
+                console.log('[pair] scanner staging connect', { roomTag: rt });
+            } catch { }
+
+            // ensure any previous provider is down before switching rooms
+            try { await disconnect(); } catch { }
+
+            // log the exact roomTag we are joining for staging
+            try {
+                const rt = (await roomTagFromSecretB64(req.pairingSecret)).slice(0, ROOM_TAG_LEN);
+                console.log('[pair] scanner staging connect', { roomTag: rt });
+            } catch { }
 
             // start sync; SyncProvider will bring up the heartbeat
             setUi(s => ({ ...s, note: 'Code accepted. Waiting for the other device…' }));

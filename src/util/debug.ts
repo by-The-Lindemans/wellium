@@ -1,8 +1,14 @@
-// Default ON in dev and in native WebView; can still be forced in production via localStorage.DEBUG_*='1'
-export const IS_DEV =
-    Boolean((import.meta as any)?.env?.DEV) ||
-    // Capacitor native WebView uses "capacitor:" scheme
-    (typeof window !== 'undefined' && window.location?.protocol === 'capacitor:');
+// Default ON in dev and native; also ON when served from localhost
+export const IS_DEV = (() => {
+    try {
+        const viteDev = Boolean((import.meta as any)?.env?.DEV);
+        const proto = typeof window !== 'undefined' ? window.location?.protocol : '';
+        const host = typeof window !== 'undefined' ? window.location?.hostname : '';
+        const isCap = proto === 'capacitor:' || Boolean((window as any)?.Capacitor?.isNativePlatform);
+        const isLocal = host === 'localhost' || host === '127.0.0.1';
+        return viteDev || isCap || isLocal;
+    } catch { return false; }
+})();
 
 function flag(k: string): boolean {
     try { return localStorage.getItem(k) === '1'; } catch { return false; }

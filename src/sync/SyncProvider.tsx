@@ -23,6 +23,9 @@ type SyncCtx = {
 
 const SECRET_KEY = 'wellium/pairing-secret';
 
+let currentRoomTag: string | null = null;
+let connectingRoomTag: string | null = null;
+
 const SyncContext = createContext<SyncCtx>({
     status: 'idle',
     pairWithSecret: async () => { },
@@ -132,6 +135,7 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
         enc.start();
 
         setStatus('connecting');
+        console.log('[lan] connect() begin', { roomTag: room });
         svc.provider.connect();
         try {
             const provider = svc.provider as any;
@@ -157,8 +161,26 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
 
     async function pairWithSecret(secretB64: string) {
         try {
+            const roomTag = (await roomTagFromSecretB64(secretB64)).slice(0, ROOM_TAG_LEN);
+
+            // Idempotent: if we’re already in or connecting to this room, do nothing
+            if (currentRoomTag === roomTag || connectingRoomTag === roomTag) {
+                console.log('[pair] already in or connecting to room', roomTag);
+                return;
+            }
+
+            // Stop any existing room before switching
+            disconnect();
+
+            // Block duplicate attempts while hydrating
+            connectingRoomTag = roomTag;
             localStorage.setItem(SECRET_KEY, secretB64);
+
             await hydrateAndConnect(b64urlToBytes(secretB64));
+
+            // Success: mark current
+            currentRoomTag = roomTag;
+            connectingRoomTag = null;
         } catch (e: any) {
             setError(String(e?.message ?? e));
             setStatus('error');
@@ -178,6 +200,8 @@ export function SyncProvider(props: { signalingUrls: string[]; children: React.R
         svcPromiseRef.current = null;
         setYDoc(undefined);
         setYMap(undefined);
+        currentRoomTag = null;
+        connectingRoomTag = null;
         setStatus('idle');
     }
 

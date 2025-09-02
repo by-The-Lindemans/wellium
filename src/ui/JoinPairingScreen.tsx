@@ -8,10 +8,10 @@ import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import QRCode from 'qrcode';
 import * as Y from 'yjs';
-
 import { KeyManager } from '../crypto/KeyManager';
 import { kyberFingerprintB64url } from '../crypto/identity';
 import { generatePairingSecret, useSync } from '../sync/SyncProvider';
+import { roomTagFromSecretB64, ROOM_TAG_LEN } from '../sync/yjsSync';
 
 const SECRET_KEY = 'wellium/pairing-secret';
 
@@ -66,11 +66,25 @@ const JoinPairingScreen: React.FC<{ onFirstDevice?: () => void }> = () => {
             const kemPkFp = await kyberFingerprintB64url(kemPk);
 
             let secret = localStorage.getItem(SECRET_KEY);
+
+            // Always force client role for the staging hop, even if we reuse a cached secret
+            sessionStorage.setItem('wl/force-role', 'client');
+
+            const mintedNow = !secret;
             if (!secret) {
                 secret = generatePairingSecret();
                 localStorage.setItem(SECRET_KEY, secret);
-                sessionStorage.setItem('wl/force-role', 'client');
-                pairWithSecret(secret);
+            }
+
+            // Loud breadcrumb so you can verify both phones match
+            try {
+                const rt = (await roomTagFromSecretB64(secret!)).slice(0, ROOM_TAG_LEN);
+                console.log('[pair] joiner staging connect', { roomTag: rt });
+            } catch { }
+
+            // Only call pairWithSecret when we actually minted a fresh secret; this avoids double connect
+            if (mintedNow) {
+                pairWithSecret(secret!);
             }
 
             const payload = JSON.stringify({ v: 1, pairingSecret: secret, kemPk, kemPkFp });
